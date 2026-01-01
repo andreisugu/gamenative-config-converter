@@ -148,7 +148,7 @@
             </p>
         </div>
 
-        <textarea id="inputText" placeholder="Example:&#10;enableFeature&#10;true&#10;maxScore&#10;100&#10;playerName&#10;John Doe"></textarea>
+        <textarea id="inputText" placeholder="id&#10;12345&#10;wineVersion&#10;8.0&#10;graphicsDriverAdreno&#10;avg fps&#10;60&#10;session length sec&#10;120"></textarea>
         
         <div class="button-container">
             <button id="downloadBtn" onclick="convertAndDownload()">Download JSON</button>
@@ -159,6 +159,26 @@
     </div>
 
     <script>
+        const KNOWN_KEYS = new Set([
+            "id", "name", "drives", "lc all", "cpuList", "envVars", "showFPS", 
+            "useDRI3", "emulator", "execArgs", "forceDlc", "language", "rcfileId", 
+            "dxwrapper", "extraData", "profileId", "appVersion", "imgVersion", 
+            "audioDriver", "box64Version", "desktopTheme", "wincomponents", 
+            "config changed", "fexcoreVersion", "graphicsDriver", "sharpnessLevel", 
+            "sharpnessEffect", "sharpnessDenoise", "startupSelection", "graphicsDriverAdreno",
+            "lastInstalledMainWrapper", "discord support prompt shown", "inputType", 
+            "steamType", "wow64Mode", "screenSize", "box64Preset", "box86Preset", 
+            "installPath", "wineVersion", "box86Version", "cpuListWoW64", "useLegacyDRM", 
+            "fexcorePreset", "midiSoundFont", "executablePath", "needsUnpacking", 
+            "dxwrapperConfig", "launchRealSteam", "sessionMetadata", "avg fps", 
+            "session length sec", "touchscreenMode", "containerVariant", "dinputMapperType", 
+            "sdlControllerAPI", "allowSteamUpdates", "controllerMapping", "disableMouseInput", 
+            "primaryController", "emulateKeyboardMouse", "graphicsDriverConfig", 
+            "graphicsDriverVersion", "controllerEmulationBindings",
+            "A", "B", "X", "Y", "L1", "L2", "L3", "R1", "R2", "R3", "START", "SELECT", 
+            "DPAD UP", "DPAD DOWN", "DPAD LEFT", "DPAD RIGHT"
+        ]);
+
         function parseValue(value) {
             // Trim whitespace
             const trimmedValue = value.trim();
@@ -193,21 +213,32 @@
                 throw new Error('Input is empty. Please provide key-value pairs.');
             }
             
-            if (lines.length % 2 !== 0) {
-                throw new Error('Input must have an even number of lines (key-value pairs).');
-            }
-            
             const containerData = {};
+            let i = 0;
             
-            for (let i = 0; i < lines.length; i += 2) {
-                const key = lines[i].trim();
-                const value = lines[i + 1].trim();
+            while (i < lines.length) {
+                const currentLine = lines[i].trim();
                 
-                if (!key) {
-                    throw new Error(`Key at line ${i + 1} is empty.`);
+                // Check if current line is a known key
+                if (KNOWN_KEYS.has(currentLine)) {
+                    const key = currentLine;
+                    
+                    // Peek at the next line
+                    const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
+                    const nextLineIsKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
+                    
+                    // If next line is also a known key or undefined, current key has empty value
+                    if (nextLine === undefined || nextLineIsKey) {
+                        containerData[key] = "";
+                        i++; // Move to next line
+                    } else {
+                        // Next line is the value for this key
+                        containerData[key] = parseValue(nextLine);
+                        i += 2; // Skip both key and value
+                    }
+                } else {
+                    throw new Error(`Unknown key "${currentLine}" at position ${i + 1}.`);
                 }
-                
-                containerData[key] = parseValue(value);
             }
             
             return {
