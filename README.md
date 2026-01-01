@@ -1,6 +1,3 @@
-Here is the complete `README.md` content in a code block for you to copy:
-
-```markdown
 # 🛠️ GameNative Config Converter
 
 > **The missing link between community data and your GameNative emulator.**
@@ -99,8 +96,6 @@ Found a new configuration key that the parser misses?
 
 ## 📄 License
 This project is licensed under the [MIT License](LICENSE) - free to use, modify, and host.
-
----
 
 *Not affiliated with the official GameNative/Winlator development team. Built by the community, for the community.*
 
