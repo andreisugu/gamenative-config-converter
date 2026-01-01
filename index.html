@@ -160,7 +160,20 @@
 
     <script>
         const KNOWN_KEYS = [
-            "id", "name", "drives", "lc all", "cpuList", "envVars", "showFPS", "useDRI3", "emulator", "execArgs", "forceDlc", "language", "rcfileId", "dxwrapper", "extraData", "profileId", "appVersion", "imgVersion", "audioDriver", "box64Version", "desktopTheme", "wincomponents", "config changed", "fexcoreVersion", "graphicsDriver", "sharpnessLevel", "sharpnessEffect", "sharpnessDenoise", "startupSelection", "lastInstalledMainWrapper", "discord support prompt shown", "inputType", "steamType", "wow64Mode", "screenSize", "box64Preset", "box86Preset", "installPath", "box86Version", "cpuListWoW64", "useLegacyDRM", "fexcorePreset", "midiSoundFont", "executablePath", "needsUnpacking", "dxwrapperConfig", "launchRealSteam", "sessionMetadata", "touchscreenMode", "containerVariant", "dinputMapperType", "sdlControllerAPI", "allowSteamUpdates", "controllerMapping", "disableMouseInput", "primaryController", "graphicsDriverConfig", "graphicsDriverVersion"
+            "id", "name", "drives", "lc all", "cpuList", "envVars", "showFPS", 
+            "useDRI3", "emulator", "execArgs", "forceDlc", "language", "rcfileId", 
+            "dxwrapper", "extraData", "profileId", "appVersion", "imgVersion", 
+            "audioDriver", "box64Version", "desktopTheme", "wincomponents", 
+            "config changed", "fexcoreVersion", "graphicsDriver", "sharpnessLevel", 
+            "sharpnessEffect", "sharpnessDenoise", "startupSelection", 
+            "lastInstalledMainWrapper", "discord support prompt shown", "inputType", 
+            "steamType", "wow64Mode", "screenSize", "box64Preset", "box86Preset", 
+            "installPath", "box86Version", "cpuListWoW64", "useLegacyDRM", 
+            "fexcorePreset", "midiSoundFont", "executablePath", "needsUnpacking", 
+            "dxwrapperConfig", "launchRealSteam", "sessionMetadata", "touchscreenMode", 
+            "containerVariant", "dinputMapperType", "sdlControllerAPI", 
+            "allowSteamUpdates", "controllerMapping", "disableMouseInput", 
+            "primaryController", "graphicsDriverConfig", "graphicsDriverVersion"
         ];
 
         function parseValue(value) {
@@ -209,9 +222,10 @@
                     
                     // Peek at the next line
                     const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
+                    const nextLineIsKey = nextLine !== undefined && KNOWN_KEYS.includes(nextLine);
                     
                     // If next line is also a known key or undefined, current key has empty value
-                    if (nextLine === undefined || KNOWN_KEYS.includes(nextLine)) {
+                    if (nextLine === undefined || nextLineIsKey) {
                         containerData[key] = "";
                         i++; // Move to next line
                     } else {
