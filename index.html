@@ -224,14 +224,22 @@
                     if (i + 1 < lines.length) {
                         const buttonValue = lines[i + 1].trim();
                         
-                        // If the next line is NOT a known key, it's the value for this button
-                        if (!KNOWN_KEYS.has(buttonValue)) {
+                        // Check if next line is another button key or a non-button known key
+                        // If it's another button key, current button has no value
+                        // If it's a non-button known key, we're done with bindings
+                        if (BUTTON_KEYS.has(buttonValue)) {
+                            // Next line is another button, so this button has empty value
+                            bindings[buttonKey] = "";
+                            i++; // Move to next button
+                        } else if (KNOWN_KEYS.has(buttonValue)) {
+                            // Next line is a non-button key, we're done collecting bindings
+                            bindings[buttonKey] = "";
+                            i++; // Move past this button, outer loop will handle the key
+                            break;
+                        } else {
+                            // Next line is a value for this button
                             bindings[buttonKey] = parseValue(buttonValue);
                             i += 2; // Skip both button key and its value
-                        } else {
-                            // Next line is a key, so this button has no value (shouldn't happen normally)
-                            bindings[buttonKey] = "";
-                            i++;
                         }
                     } else {
                         // No more lines, button has no value
