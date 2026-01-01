@@ -179,6 +179,11 @@
             "DPAD UP", "DPAD DOWN", "DPAD LEFT", "DPAD RIGHT"
         ]);
 
+        const BUTTON_KEYS = new Set([
+            "A", "B", "X", "Y", "L1", "L2", "L3", "R1", "R2", "R3", "START", "SELECT", 
+            "DPAD UP", "DPAD DOWN", "DPAD LEFT", "DPAD RIGHT"
+        ]);
+
         function parseValue(value) {
             // Trim whitespace
             const trimmedValue = value.trim();
@@ -223,18 +228,57 @@
                 if (KNOWN_KEYS.has(currentLine)) {
                     const key = currentLine;
                     
-                    // Peek at the next line
-                    const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
-                    const nextLineIsKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
-                    
-                    // If next line is also a known key or undefined, current key has empty value
-                    if (nextLine === undefined || nextLineIsKey) {
-                        containerData[key] = "";
-                        i++; // Move to next line
+                    // Special handling for controllerEmulationBindings
+                    if (key === "controllerEmulationBindings") {
+                        const bindings = {};
+                        i++; // Move past the controllerEmulationBindings key
+                        
+                        // Collect all button key-value pairs
+                        while (i < lines.length) {
+                            const buttonKey = lines[i].trim();
+                            
+                            // Check if this is a button key
+                            if (BUTTON_KEYS.has(buttonKey)) {
+                                // Get the value for this button
+                                if (i + 1 < lines.length) {
+                                    const buttonValue = lines[i + 1].trim();
+                                    
+                                    // If the next line is NOT a known key, it's the value for this button
+                                    if (!KNOWN_KEYS.has(buttonValue)) {
+                                        bindings[buttonKey] = parseValue(buttonValue);
+                                        i += 2; // Skip both button key and its value
+                                    } else {
+                                        // Next line is a key, so this button has no value (shouldn't happen normally)
+                                        bindings[buttonKey] = "";
+                                        i++;
+                                    }
+                                } else {
+                                    // No more lines, button has no value
+                                    bindings[buttonKey] = "";
+                                    i++;
+                                }
+                            } else {
+                                // Not a button key, we're done collecting bindings
+                                break;
+                            }
+                        }
+                        
+                        containerData[key] = bindings;
                     } else {
-                        // Next line is the value for this key
-                        containerData[key] = parseValue(nextLine);
-                        i += 2; // Skip both key and value
+                        // Regular key handling
+                        // Peek at the next line
+                        const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
+                        const nextLineIsKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
+                        
+                        // If next line is also a known key or undefined, current key has empty value
+                        if (nextLine === undefined || nextLineIsKey) {
+                            containerData[key] = "";
+                            i++; // Move to next line
+                        } else {
+                            // Next line is the value for this key
+                            containerData[key] = parseValue(nextLine);
+                            i += 2; // Skip both key and value
+                        }
                     }
                 } else {
                     throw new Error(`Unknown key "${currentLine}" at position ${i + 1}.`);
