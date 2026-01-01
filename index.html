@@ -174,7 +174,7 @@
             }
             
             // Check if it's a number
-            if (/^-?\d+\.?\d*$/.test(trimmedValue)) {
+            if (/^-?\d+(\.\d+)?$/.test(trimmedValue)) {
                 const numValue = Number(trimmedValue);
                 // Only convert if it's a valid number (not NaN or Infinity)
                 if (!isNaN(numValue) && isFinite(numValue)) {
@@ -201,7 +201,7 @@
             
             for (let i = 0; i < lines.length; i += 2) {
                 const key = lines[i].trim();
-                const value = lines[i + 1];
+                const value = lines[i + 1].trim();
                 
                 if (!key) {
                     throw new Error(`Key at line ${i + 1} is empty.`);
