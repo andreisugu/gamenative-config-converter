@@ -265,6 +265,7 @@ export default function ConfigConverterPage() {
   const [success, setSuccess] = useState('');
   const [isConverting, setIsConverting] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [convertSteamId, setConvertSteamId] = useState(false);
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup timeout on unmount
@@ -283,7 +284,7 @@ export default function ConfigConverterPage() {
     
     try {
       const jsonData = convertToJSON(inputText);
-      const containerName = await getContainerName(jsonData);
+      const containerName = convertSteamId ? await getContainerName(jsonData) : "Imported Config";
       
       const finalOutput: ExportData = {
         version: 1,
@@ -337,7 +338,7 @@ export default function ConfigConverterPage() {
     
     try {
       const jsonData = convertToJSON(inputText);
-      const containerName = await getContainerName(jsonData);
+      const containerName = convertSteamId ? await getContainerName(jsonData) : "Imported Config";
       
       const finalOutput: ExportData = {
         version: 1,
@@ -383,14 +384,24 @@ export default function ConfigConverterPage() {
                 Converts raw configurations into usable game configurations
               </p>
             </div>
-            <a
-              href="https://gamenative.app/compatibility/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 protected-button-green text-white font-semibold rounded-lg shadow-lg shadow-green-500/30 transition-all transform hover:scale-105 active:scale-95 whitespace-nowrap"
-            >
-              Compatibility List
-            </a>
+            <div className="flex gap-3">
+              <a
+                href="https://gamenative.app/compatibility/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 protected-button-green text-white font-semibold rounded-lg shadow-lg shadow-green-500/30 transition-all transform hover:scale-105 active:scale-95 whitespace-nowrap"
+              >
+                Compatibility List
+              </a>
+              <a
+                href="https://diffcheck.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 protected-button-cyan text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/30 transition-all transform hover:scale-105 active:scale-95 whitespace-nowrap"
+              >
+                DiffCheck.io
+              </a>
+            </div>
           </div>
         </div>
 
@@ -407,6 +418,21 @@ export default function ConfigConverterPage() {
               and numeric strings will be converted to numbers.
             </span>
           </p>
+        </div>
+
+        {/* Options */}
+        <div className="bg-gray-800/50 border border-gray-700 p-4 rounded-lg mb-6 backdrop-blur-sm">
+          <label className="flex items-center cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={convertSteamId}
+              onChange={(e) => setConvertSteamId(e.target.checked)}
+              className="w-4 h-4 text-cyan-500 bg-gray-900 border-gray-600 rounded focus:ring-cyan-500 focus:ring-2 cursor-pointer"
+            />
+            <span className="ml-3 text-sm text-gray-300 group-hover:text-gray-100 transition-colors">
+              Convert Steam ID to game name (fetches game name from Steam API)
+            </span>
+          </label>
         </div>
 
         {/* Main Content - Split View */}
