@@ -265,7 +265,7 @@ function JsonHighlight({ json }: { json: string }) {
     const lines = jsonString.split('\n');
     
     return lines.map((line, lineIndex) => {
-      const parts: JSX.Element[] = [];
+      const parts: React.JSX.Element[] = [];
       let lastIndex = 0;
       let processed = false;
 
