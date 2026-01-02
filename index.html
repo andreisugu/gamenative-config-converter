@@ -364,7 +364,16 @@
                             data[appId].data && 
                             typeof data[appId].data === 'object' &&
                             typeof data[appId].data.name === 'string') {
-                            return data[appId].data.name;
+                            // Sanitize the game name to prevent XSS attacks
+                            const gameName = data[appId].data.name;
+                            const sanitized = gameName
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#x27;')
+                                .replace(/\//g, '&#x2F;');
+                            return sanitized;
                         }
                     } catch (proxyError) {
                         console.warn(`Proxy ${proxy} failed:`, proxyError);
@@ -394,10 +403,14 @@
                 // Extract Steam App ID from the id field and fetch game name
                 let containerName = "Imported Config";
                 if (jsonData.id && typeof jsonData.id === 'string' && jsonData.id.startsWith(STEAM_ID_PREFIX)) {
-                    const appId = jsonData.id.replace(STEAM_ID_PREFIX, '');
-                    const gameName = await fetchSteamGameName(appId);
-                    if (gameName) {
-                        containerName = gameName;
+                    const appId = jsonData.id.slice(STEAM_ID_PREFIX.length);
+                    
+                    // Validate that appId is numeric before making API call
+                    if (appId && /^\d+$/.test(appId)) {
+                        const gameName = await fetchSteamGameName(appId);
+                        if (gameName) {
+                            containerName = gameName;
+                        }
                     }
                 }
                 
