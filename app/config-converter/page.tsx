@@ -118,6 +118,12 @@ function convertToJSON(inputText: string): Config {
   while (i < lines.length) {
     const currentLine = lines[i].trim();
     
+    // Skip "Configs" header if accidentally copied
+    if (currentLine.toLowerCase() === 'configs') {
+      i++;
+      continue;
+    }
+    
     // Check if current line is a button key
     if (BUTTON_KEYS.has(currentLine)) {
       const buttonKey = currentLine;
@@ -235,6 +241,23 @@ async function fetchSteamGameName(appId: string): Promise<string | null> {
   }
 }
 
+async function getContainerName(config: Config): Promise<string> {
+  let containerName = "Imported Config";
+  
+  if (config.id && typeof config.id === 'string' && config.id.startsWith(STEAM_ID_PREFIX)) {
+    const appId = config.id.slice(STEAM_ID_PREFIX.length);
+    
+    if (appId && NUMERIC_APP_ID_PATTERN.test(appId)) {
+      const gameName = await fetchSteamGameName(appId);
+      if (gameName) {
+        containerName = gameName;
+      }
+    }
+  }
+  
+  return containerName;
+}
+
 export default function ConfigConverterPage() {
   const [inputText, setInputText] = useState('');
   const [jsonPreview, setJsonPreview] = useState('');
@@ -242,17 +265,20 @@ export default function ConfigConverterPage() {
   const [success, setSuccess] = useState('');
   const [isConverting, setIsConverting] = useState(false);
 
-  const handleConvert = () => {
+  const handleConvert = async () => {
     setError('');
     setSuccess('');
+    setIsConverting(true);
     
     try {
       const jsonData = convertToJSON(inputText);
+      const containerName = await getContainerName(jsonData);
+      
       const finalOutput: ExportData = {
         version: 1,
         exportedFrom: "GameNative",
         timestamp: Date.now(),
-        containerName: "Imported Config",
+        containerName: containerName,
         config: jsonData
       };
       
@@ -262,6 +288,8 @@ export default function ConfigConverterPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during conversion');
       setJsonPreview('');
+    } finally {
+      setIsConverting(false);
     }
   };
 
@@ -272,18 +300,7 @@ export default function ConfigConverterPage() {
     
     try {
       const jsonData = convertToJSON(inputText);
-      
-      let containerName = "Imported Config";
-      if (jsonData.id && typeof jsonData.id === 'string' && jsonData.id.startsWith(STEAM_ID_PREFIX)) {
-        const appId = jsonData.id.slice(STEAM_ID_PREFIX.length);
-        
-        if (appId && NUMERIC_APP_ID_PATTERN.test(appId)) {
-          const gameName = await fetchSteamGameName(appId);
-          if (gameName) {
-            containerName = gameName;
-          }
-        }
-      }
+      const containerName = await getContainerName(jsonData);
       
       const finalOutput: ExportData = {
         version: 1,
@@ -344,11 +361,14 @@ export default function ConfigConverterPage() {
         <div className="bg-gray-800/50 border-l-4 border-cyan-500 p-4 rounded-lg mb-6 backdrop-blur-sm">
           <h3 className="text-cyan-400 font-semibold mb-2">How to use:</h3>
           <p className="text-gray-300 text-sm leading-relaxed">
-            Enter your configuration with alternating key-value pairs on separate lines.<br />
-            Line N = Key, Line N+1 = Value<br />
-            Values like <code className="bg-gray-900 px-2 py-0.5 rounded text-orange-400">true</code>/
-            <code className="bg-gray-900 px-2 py-0.5 rounded text-orange-400">false</code> will be converted to booleans, 
-            and numeric strings will be converted to numbers.
+            Copy the config of the game you want by clicking "View Config" on a report you want and selecting all the text inside the popout. 
+            Then paste the text in here and click convert.<br />
+            <span className="text-gray-400 text-xs mt-1 inline-block">
+              Note: Configuration format is key-value pairs on separate lines (Line N = Key, Line N+1 = Value). 
+              Values like <code className="bg-gray-900 px-1 py-0.5 rounded text-orange-400">true</code>/
+              <code className="bg-gray-900 px-1 py-0.5 rounded text-orange-400">false</code> will be converted to booleans, 
+              and numeric strings will be converted to numbers.
+            </span>
           </p>
         </div>
 
@@ -393,9 +413,10 @@ export default function ConfigConverterPage() {
         <div className="flex gap-4 mb-6">
           <button
             onClick={handleConvert}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/30 transition-all transform hover:scale-105 active:scale-95"
+            disabled={isConverting}
+            className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/30 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            Preview JSON
+            {isConverting ? 'Converting...' : 'Preview JSON'}
           </button>
           <button
             onClick={handleDownload}
