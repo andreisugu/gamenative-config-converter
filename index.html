@@ -176,6 +176,7 @@
         ]);
         
         const STEAM_ID_PREFIX = "STEAM_";
+        const NUMERIC_APP_ID_PATTERN = /^\d+$/;
 
         const KNOWN_KEYS = new Set([
             "id", "name", "drives", "lc all", "cpuList", "envVars", "showFPS", 
@@ -336,7 +337,10 @@
 
         async function fetchSteamGameName(appId) {
             try {
-                // Try multiple CORS proxy services in case one is blocked
+                // NOTE: This function uses public CORS proxy services to access the Steam API
+                // since direct browser requests are blocked by CORS policy.
+                // These proxies could be unavailable or compromised. Response validation
+                // is performed to mitigate security risks.
                 const proxies = [
                     `https://api.allorigins.win/raw?url=`,
                     `https://corsproxy.io/?`,
@@ -406,7 +410,7 @@
                     const appId = jsonData.id.slice(STEAM_ID_PREFIX.length);
                     
                     // Validate that appId is numeric before making API call
-                    if (appId && /^\d+$/.test(appId)) {
+                    if (appId && NUMERIC_APP_ID_PATTERN.test(appId)) {
                         const gameName = await fetchSteamGameName(appId);
                         if (gameName) {
                             containerName = gameName;
