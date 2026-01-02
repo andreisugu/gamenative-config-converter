@@ -174,6 +174,9 @@
             "wineVersion", "box86Version", "box64Version", "fexcoreVersion", 
             "graphicsDriverVersion", "graphicsDriverConfig", "dxwrapperConfig", "id"
         ]);
+        
+        const STEAM_ID_PREFIX = "STEAM_";
+        const NUMERIC_APP_ID_PATTERN = /^\d+$/;
 
         const KNOWN_KEYS = new Set([
             "id", "name", "drives", "lc all", "cpuList", "envVars", "showFPS", 
@@ -332,7 +335,64 @@
             return config;
         }
 
-        function convertAndDownload() {
+        async function fetchSteamGameName(appId) {
+            try {
+                // NOTE: This function uses public CORS proxy services to access the Steam API
+                // since direct browser requests are blocked by CORS policy.
+                // These proxies could be unavailable or compromised. Response validation
+                // is performed to mitigate security risks.
+                const proxies = [
+                    `https://api.allorigins.win/raw?url=`,
+                    `https://corsproxy.io/?`,
+                ];
+                
+                const apiUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}`;
+                
+                for (const proxy of proxies) {
+                    try {
+                        const response = await fetch(proxy + encodeURIComponent(apiUrl));
+                        if (!response.ok) continue;
+                        
+                        const data = await response.json();
+                        
+                        // Validate response structure to prevent malicious data injection
+                        if (!data || typeof data !== 'object') {
+                            console.warn(`Invalid response from proxy ${proxy}`);
+                            continue;
+                        }
+                        
+                        // Check if the API returned valid data
+                        if (data[appId] && 
+                            typeof data[appId] === 'object' &&
+                            data[appId].success === true && 
+                            data[appId].data && 
+                            typeof data[appId].data === 'object' &&
+                            typeof data[appId].data.name === 'string') {
+                            // Sanitize the game name to prevent XSS attacks
+                            const gameName = data[appId].data.name;
+                            const sanitized = gameName
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#x27;')
+                                .replace(/\//g, '&#x2F;');
+                            return sanitized;
+                        }
+                    } catch (proxyError) {
+                        console.warn(`Proxy ${proxy} failed:`, proxyError);
+                        continue;
+                    }
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Failed to fetch Steam game name:', error);
+                return null;
+            }
+        }
+
+        async function convertAndDownload() {
             const inputText = document.getElementById('inputText').value;
             const errorMessage = document.getElementById('errorMessage');
             const successMessage = document.getElementById('successMessage');
@@ -344,12 +404,26 @@
             try {
                 const jsonData = convertToJSON(inputText);
                 
+                // Extract Steam App ID from the id field and fetch game name
+                let containerName = "Imported Config";
+                if (jsonData.id && typeof jsonData.id === 'string' && jsonData.id.startsWith(STEAM_ID_PREFIX)) {
+                    const appId = jsonData.id.slice(STEAM_ID_PREFIX.length);
+                    
+                    // Validate that appId is numeric before making API call
+                    if (appId && NUMERIC_APP_ID_PATTERN.test(appId)) {
+                        const gameName = await fetchSteamGameName(appId);
+                        if (gameName) {
+                            containerName = gameName;
+                        }
+                    }
+                }
+                
                 // Wrap the config in the required metadata structure for Import feature
                 const finalOutput = {
                     "version": 1,
                     "exportedFrom": "GameNative",
                     "timestamp": Date.now(),
-                    "containerName": "Imported Config",
+                    "containerName": containerName,
                     "config": jsonData
                 };
                 
