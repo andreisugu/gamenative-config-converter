@@ -159,10 +159,16 @@
     </div>
 
     <script>
-        const BUTTON_KEYS = new Set([
-            "A", "B", "X", "Y", "L1", "L2", "L3", "R1", "R2", "R3", "START", "SELECT", 
-            "DPAD UP", "DPAD DOWN", "DPAD LEFT", "DPAD RIGHT"
-        ]);
+        const BUTTON_INDEX_MAP = {
+            "A": "0", "B": "1", "X": "2", "Y": "3",
+            "L1": "4", "R1": "5", "SELECT": "6", "START": "7",
+            "MENU": "8", "L2": "9", "R2": "10", "L3": "11",
+            "R3": "12", "DPAD UP": "13", "DPAD DOWN": "14",
+            "DPAD LEFT": "15", "DPAD RIGHT": "16"
+        };
+
+        // Derive BUTTON_KEYS from BUTTON_INDEX_MAP to maintain consistency
+        const BUTTON_KEYS = new Set(Object.keys(BUTTON_INDEX_MAP));
 
         const EXCLUDED_KEYS = new Set([
             "avg fps", "session length sec", "appVersion", 
@@ -265,6 +271,13 @@
                 // Check if current line is a button key
                 if (BUTTON_KEYS.has(currentLine)) {
                     const buttonKey = currentLine;
+                    const buttonIndex = BUTTON_INDEX_MAP[buttonKey];
+                    
+                    // Defensive check for future extensibility (currently unreachable since BUTTON_KEYS is derived from BUTTON_INDEX_MAP)
+                    if (buttonIndex === undefined) {
+                        i++;
+                        continue;
+                    }
                     
                     // Peek at the next line
                     const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
@@ -273,11 +286,11 @@
                     
                     // If next line is also a known key, button key, or undefined, current button has empty value
                     if (nextLine === undefined || nextLineIsKnownKey || nextLineIsButtonKey) {
-                        bindings[buttonKey] = "";
+                        bindings[buttonIndex] = "";
                         i++; // Move to next line
                     } else {
                         // Next line is the value for this button
-                        bindings[buttonKey] = parseValue(nextLine, buttonKey);
+                        bindings[buttonIndex] = parseValue(nextLine, buttonKey);
                         i += 2; // Skip both button key and value
                     }
                 }
