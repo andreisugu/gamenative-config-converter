@@ -2,6 +2,8 @@
 
 > **The missing link between community data and your GameNative emulator.**
 
+Built with **Next.js**, **TypeScript**, and **Tailwind CSS** for a modern, type-safe, and responsive experience.
+
 ### 🌐 [**Click Here to Launch the Converter**](https://andreisugu.github.io/gamenative-config-converter/)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -101,12 +103,31 @@ This tool generates JSON files compatible with GameNative builds that include th
 
 -----
 
+## 🛠️ Development
+
+This project is built with **Next.js**, **TypeScript**, and **Tailwind CSS**.
+
+### Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+The converter is available at `/config-converter` route.
+
 ## 🤝 Contributing
 
 Found a new configuration key that the parser misses?
 
 1.  Fork the repo.
-2.  Add the key to the `KNOWN_KEYS` set in `index.html`.
+2.  Add the key to the `KNOWN_KEYS` set in `app/config-converter/page.tsx`.
 3.  Submit a Pull Request.
 
 ## 📄 License
