@@ -165,14 +165,14 @@
         ]);
 
         const EXCLUDED_KEYS = new Set([
-            "avg fps", "session length sec", "sessionMetadata", "appVersion", 
+            "avg fps", "session length sec", "appVersion", 
             "imgVersion", "config changed", "discord support prompt shown", 
-            "id", "profileId"
+            "profileId"  // Junk metadata fields excluded from config output
         ]);
 
         const STRING_ONLY_KEYS = new Set([
             "wineVersion", "box86Version", "box64Version", "fexcoreVersion", 
-            "graphicsDriverVersion", "graphicsDriverConfig", "dxwrapperConfig"
+            "graphicsDriverVersion", "graphicsDriverConfig", "dxwrapperConfig", "id"
         ]);
 
         const KNOWN_KEYS = new Set([
@@ -196,6 +196,26 @@
         function parseValue(value, key) {
             // Trim whitespace
             const trimmedValue = value.trim();
+            
+            // Handle drives: remove all whitespace per spec (LETTER:PATHLETTER2:PATH with zero spaces)
+            if (key === "drives") {
+                return trimmedValue.replace(/\s+/g, '');
+            }
+            
+            // Handle extraData and sessionMetadata: parse as JSON objects
+            if (key === "extraData" || key === "sessionMetadata") {
+                // Handle "null" string
+                if (trimmedValue === "null") {
+                    return null;
+                }
+                // Try to parse as JSON
+                try {
+                    return JSON.parse(trimmedValue);
+                } catch (e) {
+                    // If parsing fails, return as string
+                    return trimmedValue;
+                }
+            }
             
             // Skip conversion for version-related keys
             if (key && STRING_ONLY_KEYS.has(key)) {
@@ -234,7 +254,6 @@
             
             const config = {};
             const bindings = {};
-            let containerName = "Imported Config";
             let i = 0;
             
             while (i < lines.length) {
@@ -263,60 +282,41 @@
                 else if (KNOWN_KEYS.has(currentLine)) {
                     const key = currentLine;
                     
-                    // Special handling for "name" key - move it to containerName
-                    if (key === "name") {
+                    // Skip excluded keys (junk metadata)
+                    if (EXCLUDED_KEYS.has(key)) {
+                        // Peek at the next line to determine if we need to skip a value
+                        const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
+                        const nextLineIsKnownKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
+                        const nextLineIsButtonKey = nextLine !== undefined && BUTTON_KEYS.has(nextLine);
+                        
+                        // If next line is also a known key, button key, or undefined, skip only current line
+                        if (nextLine === undefined || nextLineIsKnownKey || nextLineIsButtonKey) {
+                            i++; // Skip the excluded key
+                        } else {
+                            // Skip both the excluded key and its value
+                            i += 2;
+                        }
+                    } else {
+                        // Process non-excluded keys
+                        // Rename "lc all" to "lc_all" for property name compatibility
+                        let configKey = key;
+                        if (key === "lc all") {
+                            configKey = "lc_all";
+                        }
+                        
                         // Peek at the next line
                         const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
                         const nextLineIsKnownKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
                         const nextLineIsButtonKey = nextLine !== undefined && BUTTON_KEYS.has(nextLine);
                         
-                        // If next line is also a known key, button key, or undefined, use default name
+                        // If next line is also a known key, button key, or undefined, current key has empty value
                         if (nextLine === undefined || nextLineIsKnownKey || nextLineIsButtonKey) {
-                            containerName = "Imported Config";
+                            config[configKey] = "";
                             i++; // Move to next line
                         } else {
-                            // Next line is the value for name
-                            containerName = parseValue(nextLine, "name");
+                            // Next line is the value for this key
+                            config[configKey] = parseValue(nextLine, key);
                             i += 2; // Skip both key and value
-                        }
-                    } else {
-                        // Regular key handling
-                        // Skip excluded keys (junk metadata)
-                        if (EXCLUDED_KEYS.has(key)) {
-                            // Peek at the next line to determine if we need to skip a value
-                            const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
-                            const nextLineIsKnownKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
-                            const nextLineIsButtonKey = nextLine !== undefined && BUTTON_KEYS.has(nextLine);
-                            
-                            // If next line is also a known key, button key, or undefined, skip only current line
-                            if (nextLine === undefined || nextLineIsKnownKey || nextLineIsButtonKey) {
-                                i++; // Skip the excluded key
-                            } else {
-                                // Skip both the excluded key and its value
-                                i += 2;
-                            }
-                        } else {
-                            // Process non-excluded keys
-                            // Rename "lc all" to "lc_all" for Android compatibility
-                            let configKey = key;
-                            if (key === "lc all") {
-                                configKey = "lc_all";
-                            }
-                            
-                            // Peek at the next line
-                            const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
-                            const nextLineIsKnownKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
-                            const nextLineIsButtonKey = nextLine !== undefined && BUTTON_KEYS.has(nextLine);
-                            
-                            // If next line is also a known key, button key, or undefined, current key has empty value
-                            if (nextLine === undefined || nextLineIsKnownKey || nextLineIsButtonKey) {
-                                config[configKey] = "";
-                                i++; // Move to next line
-                            } else {
-                                // Next line is the value for this key
-                                config[configKey] = parseValue(nextLine, key);
-                                i += 2; // Skip both key and value
-                            }
                         }
                     }
                 } else {
@@ -329,11 +329,7 @@
                 config.controllerEmulationBindings = bindings;
             }
             
-            return {
-                version: 1,
-                containerName: containerName,
-                config: config
-            };
+            return config;
         }
 
         function convertAndDownload() {
