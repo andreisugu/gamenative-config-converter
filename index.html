@@ -132,6 +132,39 @@
             border-radius: 3px;
             color: #ce9178;
         }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #d4d4d4;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .input-group input[type="text"] {
+            width: 100%;
+            padding: 10px 15px;
+            background-color: #252526;
+            color: #d4d4d4;
+            border: 2px solid #3e3e42;
+            border-radius: 5px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input[type="text"]:focus {
+            outline: none;
+            border-color: #4ec9b0;
+        }
+
+        .input-group input[type="text"]::placeholder {
+            color: #6a6a6a;
+        }
     </style>
 </head>
 <body>
@@ -146,6 +179,11 @@
                 Line N = Key, Line N+1 = Value<br>
                 Values like <code>true</code>/<code>false</code> will be converted to booleans, and numeric strings will be converted to numbers.
             </p>
+        </div>
+
+        <div class="input-group">
+            <label for="containerNameInput">Container Name:</label>
+            <input type="text" id="containerNameInput" value="Imported Config" placeholder="Imported Config">
         </div>
 
         <textarea id="inputText" placeholder="wineVersion&#10;8.0&#10;graphicsDriverAdreno&#10;turnip&#10;showFPS&#10;true&#10;envVars&#10;WINE_DEBUG=warn"></textarea>
@@ -334,6 +372,7 @@
 
         function convertAndDownload() {
             const inputText = document.getElementById('inputText').value;
+            const containerNameInput = document.getElementById('containerNameInput').value.trim();
             const errorMessage = document.getElementById('errorMessage');
             const successMessage = document.getElementById('successMessage');
             
@@ -344,12 +383,15 @@
             try {
                 const jsonData = convertToJSON(inputText);
                 
+                // Use containerName from input, fallback to "Imported Config" if empty
+                const containerName = containerNameInput || "Imported Config";
+                
                 // Wrap the config in the required metadata structure for Import feature
                 const finalOutput = {
                     "version": 1,
                     "exportedFrom": "GameNative",
                     "timestamp": Date.now(),
-                    "containerName": "Imported Config",
+                    "containerName": containerName,
                     "config": jsonData
                 };
                 
