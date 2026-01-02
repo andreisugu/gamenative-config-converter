@@ -242,17 +242,31 @@ export default function ConfigConverterPage() {
   const [success, setSuccess] = useState('');
   const [isConverting, setIsConverting] = useState(false);
 
-  const handleConvert = () => {
+  const handleConvert = async () => {
     setError('');
     setSuccess('');
+    setIsConverting(true);
     
     try {
       const jsonData = convertToJSON(inputText);
+      
+      let containerName = "Imported Config";
+      if (jsonData.id && typeof jsonData.id === 'string' && jsonData.id.startsWith(STEAM_ID_PREFIX)) {
+        const appId = jsonData.id.slice(STEAM_ID_PREFIX.length);
+        
+        if (appId && NUMERIC_APP_ID_PATTERN.test(appId)) {
+          const gameName = await fetchSteamGameName(appId);
+          if (gameName) {
+            containerName = gameName;
+          }
+        }
+      }
+      
       const finalOutput: ExportData = {
         version: 1,
         exportedFrom: "GameNative",
         timestamp: Date.now(),
-        containerName: "Imported Config",
+        containerName: containerName,
         config: jsonData
       };
       
@@ -262,6 +276,8 @@ export default function ConfigConverterPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during conversion');
       setJsonPreview('');
+    } finally {
+      setIsConverting(false);
     }
   };
 
@@ -393,9 +409,10 @@ export default function ConfigConverterPage() {
         <div className="flex gap-4 mb-6">
           <button
             onClick={handleConvert}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/30 transition-all transform hover:scale-105 active:scale-95"
+            disabled={isConverting}
+            className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/30 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            Preview JSON
+            {isConverting ? 'Converting...' : 'Preview JSON'}
           </button>
           <button
             onClick={handleDownload}
