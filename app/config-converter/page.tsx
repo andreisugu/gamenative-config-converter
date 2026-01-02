@@ -261,15 +261,6 @@ async function getContainerName(config: Config): Promise<string> {
 // Component to render JSON with syntax highlighting
 function JsonHighlight({ json }: { json: string }) {
   const highlightJson = (jsonString: string) => {
-    // Regex patterns for different JSON elements
-    const patterns = [
-      { pattern: /"([^"]+)":/g, className: 'text-cyan-400' }, // Keys
-      { pattern: /:\s*"([^"]*)"/g, className: 'text-green-400' }, // String values
-      { pattern: /:\s*(true|false)/g, className: 'text-orange-400' }, // Booleans
-      { pattern: /:\s*(-?\d+\.?\d*)/g, className: 'text-yellow-400' }, // Numbers
-      { pattern: /:\s*(null)/g, className: 'text-purple-400' }, // Null
-    ];
-
     // Split JSON into lines for processing
     const lines = jsonString.split('\n');
     
@@ -330,8 +321,8 @@ function JsonHighlight({ json }: { json: string }) {
           }
         }
         // Number values
-        else if (valuePart.match(/^\s*-?\d+\.?\d*/)) {
-          const numMatch = /^\s*(-?\d+\.?\d*)/g.exec(valuePart);
+        else if (valuePart.match(/^\s*-?\d+(?:\.\d+)?/)) {
+          const numMatch = /^\s*(-?\d+(?:\.\d+)?)/g.exec(valuePart);
           if (numMatch) {
             parts.push(<span key={`${lineIndex}-ws`}>{valuePart.substring(0, numMatch.index)}</span>);
             parts.push(
