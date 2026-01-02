@@ -1,10 +1,10 @@
-# 🛠️ GameNative Config Converter
+# 🛠️ GameNative Config Tools
 
-> **The missing link between community data and your GameNative emulator.**
+> **Complete configuration management for your GameNative emulator.**
 
 Built with **Next.js**, **TypeScript**, and **Tailwind CSS** for a modern, type-safe, and responsive experience.
 
-### 🌐 [**Click Here to Launch the Converter**](https://andreisugu.github.io/gamenative-config-converter/)
+### 🌐 [**Launch Config Converter**](https://andreisugu.github.io/gamenative-config-converter/config-converter) | [**Launch Config Editor**](https://andreisugu.github.io/gamenative-config-converter/config-editor)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://andreisugu.github.io/gamenative-config-converter/)
@@ -24,7 +24,13 @@ The GameNative/Winlator community is amazing. Users rigorously test games and up
 
 ## ✅ The Solution
 
-**GameNative Config Converter** is a single-page web tool that bridges this gap. It takes the "messy" raw text dump from community reports and instantly compiles it into a clean, structured `.json` file that the GameNative app can import directly.
+This project provides **two complementary web tools** to streamline your GameNative configuration workflow:
+
+### 🔄 Config Converter
+Takes the "messy" raw text dump from community reports and instantly compiles it into a clean, structured `.json` file that the GameNative app can import directly.
+
+### ✏️ Config Editor
+A powerful visual editor that lets you fine-tune every aspect of your configuration with an intuitive interface. Edit settings across 10 organized categories including graphics, emulation, controller, and more.
 
 **Stop typing. Start playing.**
 
@@ -32,6 +38,7 @@ The GameNative/Winlator community is amazing. Users rigorously test games and up
 
 ## ✨ Features
 
+### Config Converter
 * **Intelligent Parsing:** Handles "dense" raw text where keys and values are packed without spacing.
 * **Smart Type Inference:** Automatically detects and converts `true`/`false` to booleans and numeric strings to integers/floats.
 * **Complex Data Handling:** Detects and correctly parses nested JSON strings found in fields like `extraData` and `sessionMetadata`.
@@ -39,45 +46,73 @@ The GameNative/Winlator community is amazing. Users rigorously test games and up
 * **Junk Filtration:** Automatically strips out useless runtime metadata (e.g., `avg fps`, `session length`, `profileId`) that clogs up config files.
 * **Android-Ready Structure:** Outputs the exact nested JSON structure required by the GameNative Import/Export source code.
 
+### Config Editor
+* **Visual Interface:** Edit all configuration settings through an intuitive, organized interface.
+* **10 Organized Categories:** Settings grouped into General, Graphics, Emulation, Controller, Wine, Components, Environment, Drives, Advanced, and Hidden sections.
+* **Real-Time Validation:** Visual feedback and smart defaults ensure valid configurations.
+* **Import/Export:** Load existing JSON configs, make changes, and export updated versions.
+* **Cross-Tool Integration:** Seamlessly switch between Converter and Editor as needed.
+
 ---
 
 ## 🚀 How to Use
 
-### 1. Get the Raw Data
+### Workflow 1: Converting Raw Configs
 
+#### 1. Get the Raw Data
 Go to your preferred GameNative/Winlator config database or spreadsheet. Click "View" on a config report and copy **all** the text.
 
-### 2. Paste & Convert
-
-1.  Open the [GameNative Config Converter](https://andreisugu.github.io/gamenative-config-converter/).
+#### 2. Convert to JSON
+1.  Open the [Config Converter](https://andreisugu.github.io/gamenative-config-converter/config-converter).
 2.  Paste the raw text into the input box.
 3.  Click **"Download Clean Config"**.
 
-### 3. Import to App
-
+#### 3. Import to App
 1.  Transfer the downloaded `config.json` to your Android device.
 2.  Open **GameNative**.
 3.  Go to the **Containers** tab.
 4.  Select **Import Config** and choose your file.
 
+### Workflow 2: Editing Existing Configs
+
+#### 1. Load Your Config
+1.  Open the [Config Editor](https://andreisugu.github.io/gamenative-config-converter/config-editor).
+2.  Export your current config from GameNative and paste the JSON into the editor.
+3.  Click **"Load Config"**.
+
+#### 2. Make Changes
+Navigate through the organized tabs (General, Graphics, Emulation, etc.) and adjust any settings you need.
+
+#### 3. Export and Import
+1.  Click **"Export JSON"** to download your modified configuration.
+2.  Transfer to your Android device and import through GameNative as usual.
+
 ---
 
 ## 🧩 Technical Details
 
-This tool was built to support the **Import/Export JSON Schema** defined in the GameNative Android source code.
+These tools were built to support the **Import/Export JSON Schema** defined in the GameNative Android source code.
 
-### The Conversion Logic
+### Config Converter Logic
 
-The tool performs a "Lookahead" parse:
+The converter performs a "Lookahead" parse:
 1. It iterates through the raw text line by line.
 2. It checks a strictly defined `KNOWN_KEYS` set to differentiate between a Key and a Value.
 3. It gathers individual controller buttons (`A`, `B`, `DPAD UP`) and nests them into a `controllerEmulationBindings` object.
+
+### Config Editor Architecture
+
+The editor provides a structured interface for modifying configuration JSON:
+1. Settings are organized into 10 logical categories for easy navigation.
+2. Form controls are dynamically generated based on the configuration schema.
+3. Special handling for complex fields like CPU affinity grids, environment variables, and drive mappings.
+4. Real-time synchronization between related fields (e.g., GPU name and renderer).
 
 ---
 
 ## 🌍 Community & Support
 
-This tool is designed to support the incredible work done by the GameNative developers and community. While this converter is an unofficial utility, you can find the official project and community hubs below:
+These tools are designed to support the incredible work done by the GameNative developers and community. While these utilities are unofficial, you can find the official project and community hubs below:
 
 * **Official Website:** [GameNative.app](https://gamenative.app/)
 * **Source Code:** [GameNative GitHub Repository](https://github.com/utkarshdalal/GameNative)
@@ -87,7 +122,7 @@ This tool is designed to support the incredible work done by the GameNative deve
 
 ## ⚠️ Compatibility Note
 
-This tool generates JSON files compatible with GameNative builds that include the **Import/Export PR (#232)**. If you are using an older version of the app, you may need to update to the latest release to use the "Import" button.
+These tools generate JSON files compatible with GameNative builds that include the **Import/Export PR (#232)**. If you are using an older version of the app, you may need to update to the latest release to use the "Import" button.
 
 ## 📄 License
 
