@@ -4,12 +4,12 @@
 
 Built with **Next.js**, **TypeScript**, and **Tailwind CSS** for a modern, type-safe, and responsive experience.
 
-### 🔄 [**Launch Config Converter**](https://andreisugu.github.io/gamenative-config-converter/config-converter)
-### ✏️ [**Launch Config Editor**](https://andreisugu.github.io/gamenative-config-converter/config-editor)
+### 🔄 [**Launch Config Converter**](https://andreisugu.github.io/gamenative-config-tools/config-converter)
+### ✏️ [**Launch Config Editor**](https://andreisugu.github.io/gamenative-config-tools/config-editor)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://andreisugu.github.io/gamenative-config-converter/)
-[![Platform: Web](https://img.shields.io/badge/Platform-Web-blue.svg)](https://andreisugu.github.io/gamenative-config-converter/)
+[![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://andreisugu.github.io/gamenative-config-tools/)
+[![Platform: Web](https://img.shields.io/badge/Platform-Web-blue.svg)](https://andreisugu.github.io/gamenative-config-tools/)
 
 ---
 
@@ -64,7 +64,7 @@ A powerful visual editor that lets you fine-tune every aspect of your configurat
 Go to your preferred GameNative/Winlator config database or spreadsheet. Click "View" on a config report and copy **all** the text.
 
 #### 2. Convert to JSON
-1.  Open the [Config Converter](https://andreisugu.github.io/gamenative-config-converter/config-converter).
+1.  Open the [Config Converter](https://andreisugu.github.io/gamenative-config-tools/config-converter).
 2.  Paste the raw text into the input box.
 3.  Click **"Download Clean Config"**.
 
@@ -76,7 +76,7 @@ Go to your preferred GameNative/Winlator config database or spreadsheet. Click "
 ### Workflow 2: Editing Existing Configs
 
 #### 1. Load Your Config
-1.  Open the [Config Editor](https://andreisugu.github.io/gamenative-config-converter/config-editor).
+1.  Open the [Config Editor](https://andreisugu.github.io/gamenative-config-tools/config-editor).
 2.  Paste your JSON configuration (either exported from GameNative or converted using the Config Converter).
 3.  Click **"Load Config"**.
 
