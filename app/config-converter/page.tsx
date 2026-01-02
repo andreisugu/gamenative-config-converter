@@ -235,6 +235,23 @@ async function fetchSteamGameName(appId: string): Promise<string | null> {
   }
 }
 
+async function getContainerName(config: Config): Promise<string> {
+  let containerName = "Imported Config";
+  
+  if (config.id && typeof config.id === 'string' && config.id.startsWith(STEAM_ID_PREFIX)) {
+    const appId = config.id.slice(STEAM_ID_PREFIX.length);
+    
+    if (appId && NUMERIC_APP_ID_PATTERN.test(appId)) {
+      const gameName = await fetchSteamGameName(appId);
+      if (gameName) {
+        containerName = gameName;
+      }
+    }
+  }
+  
+  return containerName;
+}
+
 export default function ConfigConverterPage() {
   const [inputText, setInputText] = useState('');
   const [jsonPreview, setJsonPreview] = useState('');
@@ -249,18 +266,7 @@ export default function ConfigConverterPage() {
     
     try {
       const jsonData = convertToJSON(inputText);
-      
-      let containerName = "Imported Config";
-      if (jsonData.id && typeof jsonData.id === 'string' && jsonData.id.startsWith(STEAM_ID_PREFIX)) {
-        const appId = jsonData.id.slice(STEAM_ID_PREFIX.length);
-        
-        if (appId && NUMERIC_APP_ID_PATTERN.test(appId)) {
-          const gameName = await fetchSteamGameName(appId);
-          if (gameName) {
-            containerName = gameName;
-          }
-        }
-      }
+      const containerName = await getContainerName(jsonData);
       
       const finalOutput: ExportData = {
         version: 1,
@@ -288,18 +294,7 @@ export default function ConfigConverterPage() {
     
     try {
       const jsonData = convertToJSON(inputText);
-      
-      let containerName = "Imported Config";
-      if (jsonData.id && typeof jsonData.id === 'string' && jsonData.id.startsWith(STEAM_ID_PREFIX)) {
-        const appId = jsonData.id.slice(STEAM_ID_PREFIX.length);
-        
-        if (appId && NUMERIC_APP_ID_PATTERN.test(appId)) {
-          const gameName = await fetchSteamGameName(appId);
-          if (gameName) {
-            containerName = gameName;
-          }
-        }
-      }
+      const containerName = await getContainerName(jsonData);
       
       const finalOutput: ExportData = {
         version: 1,
