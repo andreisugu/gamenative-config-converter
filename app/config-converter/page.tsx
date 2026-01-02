@@ -355,11 +355,14 @@ export default function ConfigConverterPage() {
         <div className="bg-gray-800/50 border-l-4 border-cyan-500 p-4 rounded-lg mb-6 backdrop-blur-sm">
           <h3 className="text-cyan-400 font-semibold mb-2">How to use:</h3>
           <p className="text-gray-300 text-sm leading-relaxed">
-            Enter your configuration with alternating key-value pairs on separate lines.<br />
-            Line N = Key, Line N+1 = Value<br />
-            Values like <code className="bg-gray-900 px-2 py-0.5 rounded text-orange-400">true</code>/
-            <code className="bg-gray-900 px-2 py-0.5 rounded text-orange-400">false</code> will be converted to booleans, 
-            and numeric strings will be converted to numbers.
+            Copy the config of the game you want by clicking "View Config" on a report you want and selecting all the text inside the popout. 
+            Then paste the text in here and click convert.<br />
+            <span className="text-gray-400 text-xs mt-1 inline-block">
+              Note: Configuration format is key-value pairs on separate lines (Line N = Key, Line N+1 = Value). 
+              Values like <code className="bg-gray-900 px-1 py-0.5 rounded text-orange-400">true</code>/
+              <code className="bg-gray-900 px-1 py-0.5 rounded text-orange-400">false</code> will be converted to booleans, 
+              and numeric strings will be converted to numbers.
+            </span>
           </p>
         </div>
 
