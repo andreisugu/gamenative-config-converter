@@ -159,6 +159,11 @@
     </div>
 
     <script>
+        const BUTTON_KEYS = new Set([
+            "A", "B", "X", "Y", "L1", "L2", "L3", "R1", "R2", "R3", "START", "SELECT", 
+            "DPAD UP", "DPAD DOWN", "DPAD LEFT", "DPAD RIGHT"
+        ]);
+
         const EXCLUDED_KEYS = new Set([
             "avg fps", "session length sec", "appVersion", 
             "imgVersion", "config changed", "discord support prompt shown", 
@@ -185,7 +190,7 @@
             "session length sec", "touchscreenMode", "containerVariant", "dinputMapperType", 
             "sdlControllerAPI", "allowSteamUpdates", "controllerMapping", "disableMouseInput", 
             "primaryController", "emulateKeyboardMouse", "graphicsDriverConfig", 
-            "graphicsDriverVersion"
+            "graphicsDriverVersion", "controllerEmulationBindings"
         ]);
 
         function parseValue(value, key) {
@@ -248,13 +253,33 @@
             }
             
             const config = {};
+            const bindings = {};
             let i = 0;
             
             while (i < lines.length) {
                 const currentLine = lines[i].trim();
                 
+                // Check if current line is a button key
+                if (BUTTON_KEYS.has(currentLine)) {
+                    const buttonKey = currentLine;
+                    
+                    // Peek at the next line
+                    const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
+                    const nextLineIsKnownKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
+                    const nextLineIsButtonKey = nextLine !== undefined && BUTTON_KEYS.has(nextLine);
+                    
+                    // If next line is also a known key, button key, or undefined, current button has empty value
+                    if (nextLine === undefined || nextLineIsKnownKey || nextLineIsButtonKey) {
+                        bindings[buttonKey] = "";
+                        i++; // Move to next line
+                    } else {
+                        // Next line is the value for this button
+                        bindings[buttonKey] = parseValue(nextLine, buttonKey);
+                        i += 2; // Skip both button key and value
+                    }
+                }
                 // Check if current line is a known key
-                if (KNOWN_KEYS.has(currentLine)) {
+                else if (KNOWN_KEYS.has(currentLine)) {
                     const key = currentLine;
                     
                     // Skip excluded keys (junk metadata)
@@ -262,9 +287,10 @@
                         // Peek at the next line to determine if we need to skip a value
                         const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
                         const nextLineIsKnownKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
+                        const nextLineIsButtonKey = nextLine !== undefined && BUTTON_KEYS.has(nextLine);
                         
-                        // If next line is also a known key or undefined, skip only current line
-                        if (nextLine === undefined || nextLineIsKnownKey) {
+                        // If next line is also a known key, button key, or undefined, skip only current line
+                        if (nextLine === undefined || nextLineIsKnownKey || nextLineIsButtonKey) {
                             i++; // Skip the excluded key
                         } else {
                             // Skip both the excluded key and its value
@@ -281,9 +307,10 @@
                         // Peek at the next line
                         const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : undefined;
                         const nextLineIsKnownKey = nextLine !== undefined && KNOWN_KEYS.has(nextLine);
+                        const nextLineIsButtonKey = nextLine !== undefined && BUTTON_KEYS.has(nextLine);
                         
-                        // If next line is also a known key or undefined, current key has empty value
-                        if (nextLine === undefined || nextLineIsKnownKey) {
+                        // If next line is also a known key, button key, or undefined, current key has empty value
+                        if (nextLine === undefined || nextLineIsKnownKey || nextLineIsButtonKey) {
                             config[configKey] = "";
                             i++; // Move to next line
                         } else {
@@ -295,6 +322,11 @@
                 } else {
                     throw new Error(`Unknown key "${currentLine}" at position ${i + 1}.`);
                 }
+            }
+            
+            // Add bindings to config if any were collected
+            if (Object.keys(bindings).length > 0) {
+                config.controllerEmulationBindings = bindings;
             }
             
             return config;
