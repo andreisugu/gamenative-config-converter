@@ -118,6 +118,12 @@ function convertToJSON(inputText: string): Config {
   while (i < lines.length) {
     const currentLine = lines[i].trim();
     
+    // Skip "Configs" header if accidentally copied
+    if (currentLine.toLowerCase() === 'configs') {
+      i++;
+      continue;
+    }
+    
     // Check if current line is a button key
     if (BUTTON_KEYS.has(currentLine)) {
       const buttonKey = currentLine;
