@@ -4,7 +4,8 @@
 
 Built with **Next.js**, **TypeScript**, and **Tailwind CSS** for a modern, type-safe, and responsive experience.
 
-### 🌐 [**Launch Config Converter**](https://andreisugu.github.io/gamenative-config-converter/config-converter) | [**Launch Config Editor**](https://andreisugu.github.io/gamenative-config-converter/config-editor)
+### 🔄 [**Launch Config Converter**](https://andreisugu.github.io/gamenative-config-converter/config-converter)
+### ✏️ [**Launch Config Editor**](https://andreisugu.github.io/gamenative-config-converter/config-editor)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://andreisugu.github.io/gamenative-config-converter/)
@@ -69,15 +70,14 @@ Go to your preferred GameNative/Winlator config database or spreadsheet. Click "
 
 #### 3. Import to App
 1.  Transfer the downloaded `config.json` to your Android device.
-2.  Open **GameNative**.
-3.  Go to the **Containers** tab.
-4.  Select **Import Config** and choose your file.
+2.  Open **GameNative**, press on any game, and press the 3 dots in the upper right corner.
+3.  Select **Import Config** and choose your file.
 
 ### Workflow 2: Editing Existing Configs
 
 #### 1. Load Your Config
 1.  Open the [Config Editor](https://andreisugu.github.io/gamenative-config-converter/config-editor).
-2.  Export your current config from GameNative and paste the JSON into the editor.
+2.  Paste your JSON configuration (either exported from GameNative or converted using the Config Converter).
 3.  Click **"Load Config"**.
 
 #### 2. Make Changes
@@ -103,10 +103,10 @@ The converter performs a "Lookahead" parse:
 ### Config Editor Architecture
 
 The editor provides a structured interface for modifying configuration JSON:
-1. Settings are organized into 10 logical categories for easy navigation.
+1. Settings are organized into 10 logical categories for easy navigation, with the first 9 designed to mimic the in-app "Edit Container" style.
 2. Form controls are dynamically generated based on the configuration schema.
 3. Special handling for complex fields like CPU affinity grids, environment variables, and drive mappings.
-4. Real-time synchronization between related fields (e.g., GPU name and renderer).
+4. Real-time synchronization between related fields (e.g., GPU name and renderer) to maintain consistency with the "Edit Container" interface.
 
 ---
 
