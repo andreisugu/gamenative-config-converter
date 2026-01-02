@@ -174,6 +174,8 @@
             "wineVersion", "box86Version", "box64Version", "fexcoreVersion", 
             "graphicsDriverVersion", "graphicsDriverConfig", "dxwrapperConfig", "id"
         ]);
+        
+        const STEAM_ID_PREFIX = "STEAM_";
 
         const KNOWN_KEYS = new Set([
             "id", "name", "drives", "lc all", "cpuList", "envVars", "showFPS", 
@@ -349,12 +351,23 @@
                         
                         const data = await response.json();
                         
+                        // Validate response structure to prevent malicious data injection
+                        if (!data || typeof data !== 'object') {
+                            console.warn(`Invalid response from proxy ${proxy}`);
+                            continue;
+                        }
+                        
                         // Check if the API returned valid data
-                        if (data && data[appId] && data[appId].success && data[appId].data && data[appId].data.name) {
+                        if (data[appId] && 
+                            typeof data[appId] === 'object' &&
+                            data[appId].success === true && 
+                            data[appId].data && 
+                            typeof data[appId].data === 'object' &&
+                            typeof data[appId].data.name === 'string') {
                             return data[appId].data.name;
                         }
                     } catch (proxyError) {
-                        console.log(`Proxy ${proxy} failed, trying next...`);
+                        console.warn(`Proxy ${proxy} failed:`, proxyError);
                         continue;
                     }
                 }
@@ -380,8 +393,8 @@
                 
                 // Extract Steam App ID from the id field and fetch game name
                 let containerName = "Imported Config";
-                if (jsonData.id && typeof jsonData.id === 'string' && jsonData.id.startsWith('STEAM_')) {
-                    const appId = jsonData.id.replace('STEAM_', '');
+                if (jsonData.id && typeof jsonData.id === 'string' && jsonData.id.startsWith(STEAM_ID_PREFIX)) {
+                    const appId = jsonData.id.replace(STEAM_ID_PREFIX, '');
                     const gameName = await fetchSteamGameName(appId);
                     if (gameName) {
                         containerName = gameName;
