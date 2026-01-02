@@ -167,7 +167,8 @@
         const EXCLUDED_KEYS = new Set([
             "avg fps", "session length sec", "sessionMetadata", "appVersion", 
             "imgVersion", "config changed", "discord support prompt shown", 
-            "id", "profileId"
+            "id", "profileId", "sharpnessLevel", "sharpnessEffect", "sharpnessDenoise",
+            "graphicsDriverAdreno", "fexcorePreset", "extraData", "needsUnpacking"
         ]);
 
         const STRING_ONLY_KEYS = new Set([
@@ -314,7 +315,18 @@
                                 i++; // Move to next line
                             } else {
                                 // Next line is the value for this key
-                                config[configKey] = parseValue(nextLine, key);
+                                let value = parseValue(nextLine, key);
+                                
+                                // Apply formatting fixes for Android compatibility
+                                if (configKey === "envVars" && typeof value === "string") {
+                                    // Replace spaces with semicolons for environment variables
+                                    value = value.replace(/ /g, ';');
+                                } else if (configKey === "drives" && typeof value === "string") {
+                                    // Insert space before drive letters (e.g., E:, C:) that are not at the start
+                                    value = value.replace(/(?<!^)([A-Z]:)/g, ' $1');
+                                }
+                                
+                                config[configKey] = value;
                                 i += 2; // Skip both key and value
                             }
                         }
