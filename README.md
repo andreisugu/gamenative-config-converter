@@ -28,17 +28,18 @@ The GameNative/Winlator community is amazing. Users rigorously test games and up
 
 ## ✨ Features
 
-  * **Intelligent Parsing:** Handles "dense" raw text where keys and values are packed without spacing.
-  * **Smart Type Inference:** Automatically detects and converts `true`/`false` to booleans and numeric strings to integers/floats.
-  * **Junk Filtration:** Automatically strips out useless metadata (e.g., `avg fps`, `session length`, `sessionMetadata`) that clogs up config files.
-  * **Edge Case Handling:** specifically fixes the "Controller Bindings" bug where the parser would mistake section headers for driver versions.
-  * **Android-Ready Structure:** Outputs the exact nested JSON structure (`containerName`, `config` wrapper) required by the GameNative Import/Export source code.
+* **Intelligent Parsing:** Handles "dense" raw text where keys and values are packed without spacing.
+* **Smart Type Inference:** Automatically detects and converts `true`/`false` to booleans and numeric strings to integers/floats.
+* **Complex Data Handling:** Detects and correctly parses nested JSON strings found in fields like `extraData` and `sessionMetadata`.
+* **Data Normalization:** Automatically fixes property naming inconsistencies (e.g., converting `lc all` to `lc_all`).
+* **Junk Filtration:** Automatically strips out useless runtime metadata (e.g., `avg fps`, `session length`, `profileId`) that clogs up config files.
+* **Android-Ready Structure:** Outputs the exact nested JSON structure (`containerName`, `exportedFrom`, `config`) required by the GameNative Import/Export source code.
 
 -----
 
 ## 🚀 How to Use
 
-### 1\. Get the Raw Data
+### 1. Get the Raw Data
 
 Go to your preferred GameNative/Winlator config database or spreadsheet. Click "View" on a config report and copy **all** the text.
 
@@ -57,13 +58,13 @@ Go to your preferred GameNative/Winlator config database or spreadsheet. Click "
 > 60
 > ```
 
-### 2\. Paste & Convert
+### 2. Paste & Convert
 
 1.  Open the [GameNative Config Converter](https://andreisugu.github.io/gamenative-config-converter/).
 2.  Paste the raw text into the input box.
 3.  Click **"Download Clean Config"**.
 
-### 3\. Import to App
+### 3. Import to App
 
 1.  Transfer the downloaded `config.json` to your Android device.
 2.  Open **GameNative**.
@@ -90,7 +91,7 @@ The tool performs a "Lookahead" parse:
 
 | Raw Input (Messy) | Output JSON (Clean) |
 | :--- | :--- |
-| `graphicsDriver`<br>`vortek-2.1`<br>`avg fps`<br>`60`<br>`A`<br>`KEY_SPACE` | <pre lang="json">{<br>  "version": 1,<br>  "containerName": "Imported Config",<br>  "config": {<br>    "graphicsDriver": "vortek-2.1",<br>    "controllerEmulationBindings": {<br>      "A": "KEY_SPACE"<br>    }<br>  }<br>}</pre> |
+| `graphicsDriver`<br>`vortek-2.1`<br>`avg fps`<br>`60`<br>`A`<br>`KEY_SPACE` | <pre lang="json">{<br>  "version": 1,<br>  "exportedFrom": "GameNative",<br>  "timestamp": 1704200000000,<br>  "containerName": "Imported Config",<br>  "config": {<br>    "graphicsDriver": "vortek-2.1",<br>    "controllerEmulationBindings": {<br>      "A": "KEY_SPACE"<br>    }<br>  }<br>}</pre> |
 
 -----
 
