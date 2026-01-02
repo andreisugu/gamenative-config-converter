@@ -242,7 +242,7 @@ export default function App() {
     const [isImporting, setIsImporting] = useState(true);
     const [error, setError] = useState("");
 
-    const converterUrl = "https://andreisugu.github.io/gamenative-config-converter/config-converter";
+    const converterUrl = "https://andreisugu.github.io/gamenative-config-tools/config-converter";
 
     useEffect(() => {
         document.documentElement.classList.add('dark');

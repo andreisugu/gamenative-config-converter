@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
-  basePath: '/gamenative-config-converter',
+  basePath: '/gamenative-config-tools',
   images: {
     unoptimized: true,
   },

@@ -512,7 +512,7 @@ export default function ConfigConverterPage() {
                 DiffCheck.io
               </a>
               <a
-                href="https://andreisugu.github.io/gamenative-config-converter/config-editor"
+                href="https://andreisugu.github.io/gamenative-config-tools/config-editor"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 protected-button-cyan text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/30 transition-all transform hover:scale-105 active:scale-95 whitespace-nowrap"
