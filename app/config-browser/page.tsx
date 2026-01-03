@@ -45,13 +45,15 @@ async function getConfigs(searchQuery?: string, gpuFilter?: string): Promise<Gam
       .order('avg_fps', { ascending: false });
 
     // Apply server-side filtering for game name
-    if (searchQuery && searchQuery.trim()) {
-      query = query.ilike('game.name', `%${searchQuery.trim()}%`);
+    const trimmedSearch = searchQuery?.trim();
+    if (trimmedSearch) {
+      query = query.ilike('game.name', `%${trimmedSearch}%`);
     }
 
     // Apply server-side filtering for GPU
-    if (gpuFilter && gpuFilter.trim()) {
-      query = query.ilike('device.gpu', `%${gpuFilter.trim()}%`);
+    const trimmedGpu = gpuFilter?.trim();
+    if (trimmedGpu) {
+      query = query.ilike('device.gpu', `%${trimmedGpu}%`);
     }
 
     // Limit to MAX_CONFIGS_LIMIT after filtering
