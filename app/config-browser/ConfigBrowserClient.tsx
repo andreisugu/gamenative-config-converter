@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Search, Star, Zap, ChevronLeft, ChevronRight, Cpu } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 interface GameConfig {
   id: number;
@@ -35,6 +35,7 @@ export default function ConfigBrowserClient({ configs, initialSearch, initialGpu
   const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   // Update URL when search changes (with debounce)
   useEffect(() => {
@@ -54,38 +55,16 @@ export default function ConfigBrowserClient({ configs, initialSearch, initialGpu
       }
       
       const queryString = params.toString();
-      const newUrl = queryString 
-        ? `${window.location.pathname}?${queryString}` 
-        : window.location.pathname;
+      const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
       router.replace(newUrl);
     }, 500); // 500ms debounce
 
     return () => clearTimeout(timer);
-  }, [searchQuery, gpuFilter, router, searchParams]);
+  }, [searchQuery, gpuFilter, router, searchParams, pathname]);
 
-  // Since server already filtered, we don't need client-side filtering
-  // But we keep this for immediate UI feedback before server responds
-  const filteredConfigs = useMemo(() => {
-    let filtered = configs;
-    
-    // Only apply client-side filter if it matches what was sent to server
-    // This provides instant feedback while typing
-    if (searchQuery.trim() && searchQuery !== initialSearch) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(config => 
-        config.game?.name?.toLowerCase().includes(query)
-      );
-    }
-    
-    if (gpuFilter.trim() && gpuFilter !== initialGpu) {
-      const gpu = gpuFilter.toLowerCase();
-      filtered = filtered.filter(config =>
-        config.device?.gpu?.toLowerCase().includes(gpu)
-      );
-    }
-    
-    return filtered;
-  }, [configs, searchQuery, gpuFilter, initialSearch, initialGpu]);
+  // Server already filtered, so just use the configs as-is for display
+  // No client-side filtering needed - trust server results
+  const filteredConfigs = configs;
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredConfigs.length / ITEMS_PER_PAGE);
@@ -191,7 +170,7 @@ export default function ConfigBrowserClient({ configs, initialSearch, initialGpu
               <Cpu className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500" size={20} />
               <input
                 type="text"
-                placeholder="Filter by GPU (e.g., Adreno 750)..."
+                placeholder="Filter by GPU..."
                 value={gpuFilter}
                 onChange={(e) => setGpuFilter(e.target.value)}
                 className="w-full pl-12 pr-4 py-4 bg-slate-900/50 backdrop-blur-md border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
