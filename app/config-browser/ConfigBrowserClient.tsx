@@ -53,9 +53,8 @@ export default function ConfigBrowserClient({ configs }: ConfigBrowserClientProp
       // Redirect to editor
       router.push('/config-editor');
     } catch (error) {
+      // Silently fail - localStorage might be full or disabled
       console.error('Failed to save config to localStorage:', error);
-      // Fallback: log to console
-      console.log('Config data:', exportData);
     }
   };
 

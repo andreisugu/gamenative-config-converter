@@ -30,11 +30,14 @@ interface SupabaseGameRun {
   device: Array<{ model: string; gpu: string; android_ver: string }>;
 }
 
+// Query string for fetching game runs with related game and device data
+const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,game:games!inner(name),device:devices(model,gpu,android_ver)';
+
 async function getConfigs(): Promise<GameConfig[]> {
   try {
     const { data, error } = await supabase
       .from('game_runs')
-      .select('id,rating,avg_fps,notes,configs,created_at,game:games!inner(name),device:devices(model,gpu,android_ver)')
+      .select(GAME_RUNS_QUERY)
       .order('rating', { ascending: false })
       .order('avg_fps', { ascending: false })
       .limit(50);
