@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Star, Zap, ChevronLeft, ChevronRight, Cpu } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
@@ -64,13 +64,13 @@ export default function ConfigBrowserClient({ configs, initialSearch, initialGpu
 
   // Server already filtered, so just use the configs as-is for display
   // No client-side filtering needed - trust server results
-  const filteredConfigs = configs;
+  const displayConfigs = configs;
 
   // Calculate pagination
-  const totalPages = Math.ceil(filteredConfigs.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(displayConfigs.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedConfigs = filteredConfigs.slice(startIndex, endIndex);
+  const paginatedConfigs = displayConfigs.slice(startIndex, endIndex);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -182,7 +182,7 @@ export default function ConfigBrowserClient({ configs, initialSearch, initialGpu
         {/* Results Count and Pagination Info */}
         <div className="mb-4 flex items-center justify-between text-slate-400 text-sm">
           <div>
-            Showing {paginatedConfigs.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredConfigs.length)} of {filteredConfigs.length} {filteredConfigs.length === 1 ? 'config' : 'configs'}
+            Showing {paginatedConfigs.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, displayConfigs.length)} of {displayConfigs.length} {displayConfigs.length === 1 ? 'config' : 'configs'}
           </div>
           {totalPages > 1 && (
             <div>
