@@ -376,16 +376,28 @@ export default function ConfigConverterPage() {
   const [isConverting, setIsConverting] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [convertSteamId, setConvertSteamId] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup timeout on unmount
   useEffect(() => {
+    // Check localStorage for guide visibility
+    const guideHidden = localStorage.getItem('configConverterGuideHidden');
+    if (guideHidden === 'true') {
+      setShowGuide(false);
+    }
+    
     return () => {
       if (copyTimeoutRef.current) {
         clearTimeout(copyTimeoutRef.current);
       }
     };
   }, []);
+
+  const handleHideGuide = () => {
+    setShowGuide(false);
+    localStorage.setItem('configConverterGuideHidden', 'true');
+  };
 
   const handleConvert = async () => {
     setError('');
@@ -524,8 +536,19 @@ export default function ConfigConverterPage() {
         </div>
 
         {/* Info Box */}
-        <div className="bg-gray-800/50 border-l-4 border-cyan-500 p-4 rounded-lg mb-6 backdrop-blur-sm">
-          <h3 className="text-cyan-400 font-semibold mb-2">How to Get a Config:</h3>
+        {showGuide && (
+        <div className="bg-gray-800/50 border-l-4 border-cyan-500 p-4 rounded-lg mb-6 backdrop-blur-sm relative">
+          <button
+            onClick={handleHideGuide}
+            className="absolute top-4 right-4 p-1 text-gray-600 hover:text-gray-400 transition-colors"
+            title="Hide this guide"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <h3 className="text-cyan-400 font-semibold mb-2 pr-8">How to Get a Config:</h3>
           <ol className="text-gray-300 text-sm leading-relaxed list-decimal list-inside space-y-1 mb-3">
             <li>Go to <a href="https://gamenative.app/compatibility/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">GameNative Compatibility List</a></li>
             <li>Select a report for the game you want</li>
@@ -544,6 +567,7 @@ export default function ConfigConverterPage() {
             </span>
           </div>
         </div>
+        )}
 
         {/* Main Content - Split View */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
