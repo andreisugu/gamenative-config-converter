@@ -58,6 +58,16 @@ A powerful visual editor that lets you fine-tune every aspect of your configurat
 
 ## 🚀 How to Use
 
+### Quick Start: Get a Config from the Community
+
+1. Go to the [GameNative Compatibility List](https://gamenative.app/compatibility/)
+2. Select a report for the game you want
+3. Click **"View Config"**
+4. Copy everything inside the popup
+5. Paste into the [Config Converter](https://andreisugu.github.io/gamenative-config-tools/config-converter)
+6. Convert it and copy the JSON output
+7. Paste into the [Config Editor](https://andreisugu.github.io/gamenative-config-tools/config-editor) if you want to make changes, or import directly into GameNative
+
 ### Workflow 1: Converting Raw Configs
 
 #### 1. Get the Raw Data

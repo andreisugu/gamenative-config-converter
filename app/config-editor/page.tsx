@@ -361,6 +361,20 @@ export default function App() {
             <div className="flex flex-col gap-8">
             <button onClick={handleImport} className="bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-xl transition-all uppercase text-xs tracking-[0.2em] active:scale-95 shadow-xl shadow-blue-900/20">Load Config</button>
 
+            {/* Mini Guide */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
+            <h3 className="text-sm font-black text-slate-100 uppercase tracking-tight">How to Get a Config</h3>
+            <ol className="text-[11px] text-slate-400 space-y-2 list-decimal list-inside">
+            <li>Go to <a href="https://gamenative.app/compatibility/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">GameNative Compatibility List</a></li>
+            <li>Select a report for the game you want</li>
+            <li>Click <span className="text-slate-200 font-bold">"View Config"</span></li>
+            <li>Copy everything inside the popup</li>
+            <li>Paste into the <a href={converterUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">Config Converter</a></li>
+            <li>Convert it and copy the JSON output</li>
+            <li>Paste the JSON here and click <span className="text-slate-200 font-bold">"Load Config"</span></li>
+            </ol>
+            </div>
+
             <div className="text-center border-t border-slate-900 pt-8">
             <p className="text-[10px] text-slate-600 uppercase font-black tracking-widest mb-3 italic">Only have a raw config string?</p>
             <a
