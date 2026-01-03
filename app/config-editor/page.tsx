@@ -546,7 +546,7 @@ export default function App() {
             />
             <Select label="Offscreen Mode" value={config.offScreenRenderingMode || 'fbo'} options={['fbo', 'backbuffer']} onChange={(v: any) => updateField('offScreenRenderingMode', v)} />
             <Select label="Video Memory" value={config.videoMemorySize || '2048'} options={['32', '64', '128', '256', '512', '1024', '2048', '4096', '6144', '8192', '10240', '12288']} onChange={(v: any) => updateField('videoMemorySize', v)} />
-            <Toggle label="Enable CSMT" checked={config.csmt} onChange={(v: any) => updateField('csmt', v)} />
+            <Toggle label="Enable CSMT" description="Wrongly Reported" checked={(parseKV(config.dxwrapperConfig).csmt ?? '1') === '1'} onChange={(v: any) => updateNestedKV('dxwrapperConfig', 'csmt', v ? '1' : '0')} />
             <Toggle label="Strict Shader Math" checked={parseKV(config.dxwrapperConfig).strictShaderMath === '1'} onChange={(v: any) => updateNestedKV('dxwrapperConfig', 'strictShaderMath', v ? '1' : '0')} />
             <Select label="Mouse Warp" value={config.mouseWarpOverride || 'disable'} options={['enable', 'disable', 'force']} onChange={(v: any) => updateField('mouseWarpOverride', v)} />
             </>
