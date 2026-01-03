@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Star, Zap, ChevronLeft, ChevronRight, Cpu } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
@@ -63,11 +63,20 @@ export default function ConfigBrowserClient({ configs, initialSearch, initialGpu
     return () => clearTimeout(timer);
   }, [searchQuery, gpuFilter, router, searchParams, pathname]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(configs.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedConfigs = configs.slice(startIndex, endIndex);
+  // Calculate pagination (memoized to avoid recalculation on unrelated state changes)
+  const { totalPages, startIndex, endIndex, paginatedConfigs } = useMemo(() => {
+    const total = Math.ceil(configs.length / ITEMS_PER_PAGE);
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const paginated = configs.slice(start, end);
+    
+    return {
+      totalPages: total,
+      startIndex: start,
+      endIndex: end,
+      paginatedConfigs: paginated
+    };
+  }, [configs.length, currentPage, configs]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
