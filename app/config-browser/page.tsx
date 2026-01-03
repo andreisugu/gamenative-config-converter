@@ -33,14 +33,28 @@ interface SupabaseGameRun {
 // Query string for fetching game runs with related game and device data
 const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,game:games!inner(name),device:devices(model,gpu,android_ver)';
 
-async function getConfigs(): Promise<GameConfig[]> {
+async function getConfigs(searchQuery?: string, gpuFilter?: string): Promise<GameConfig[]> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('game_runs')
       .select(GAME_RUNS_QUERY)
       .order('rating', { ascending: false })
-      .order('avg_fps', { ascending: false })
-      .limit(100); // Increased limit to get more data
+      .order('avg_fps', { ascending: false });
+
+    // Apply server-side filtering for game name
+    if (searchQuery && searchQuery.trim()) {
+      query = query.ilike('game.name', `%${searchQuery.trim()}%`);
+    }
+
+    // Apply server-side filtering for GPU
+    if (gpuFilter && gpuFilter.trim()) {
+      query = query.ilike('device.gpu', `%${gpuFilter.trim()}%`);
+    }
+
+    // Limit to 100 after filtering
+    query = query.limit(100);
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching configs:', error);
@@ -74,8 +88,12 @@ async function getConfigs(): Promise<GameConfig[]> {
   }
 }
 
-export default async function ConfigSearchPage() {
-  const configs = await getConfigs();
+export default async function ConfigSearchPage({
+  searchParams,
+}: {
+  searchParams: { search?: string; gpu?: string };
+}) {
+  const configs = await getConfigs(searchParams.search, searchParams.gpu);
 
-  return <ConfigBrowserClient configs={configs} />;
+  return <ConfigBrowserClient configs={configs} initialSearch={searchParams.search} initialGpu={searchParams.gpu} />;
 }

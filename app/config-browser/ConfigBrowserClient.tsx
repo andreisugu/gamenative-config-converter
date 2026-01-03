@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Search, Star, Zap, ChevronLeft, ChevronRight, Cpu } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface GameConfig {
   id: number;
@@ -23,29 +23,61 @@ interface GameConfig {
 
 interface ConfigBrowserClientProps {
   configs: GameConfig[];
+  initialSearch?: string;
+  initialGpu?: string;
 }
 
 const ITEMS_PER_PAGE = 15;
 
-export default function ConfigBrowserClient({ configs }: ConfigBrowserClientProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [gpuFilter, setGpuFilter] = useState('');
+export default function ConfigBrowserClient({ configs, initialSearch, initialGpu }: ConfigBrowserClientProps) {
+  const [searchQuery, setSearchQuery] = useState(initialSearch || '');
+  const [gpuFilter, setGpuFilter] = useState(initialGpu || '');
   const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
+  // Update URL when search changes (with debounce)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      
+      if (searchQuery) {
+        params.set('search', searchQuery);
+      } else {
+        params.delete('search');
+      }
+      
+      if (gpuFilter) {
+        params.set('gpu', gpuFilter);
+      } else {
+        params.delete('gpu');
+      }
+      
+      const queryString = params.toString();
+      const newUrl = queryString 
+        ? `${window.location.pathname}?${queryString}` 
+        : window.location.pathname;
+      router.replace(newUrl);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, gpuFilter, router, searchParams]);
+
+  // Since server already filtered, we don't need client-side filtering
+  // But we keep this for immediate UI feedback before server responds
   const filteredConfigs = useMemo(() => {
     let filtered = configs;
     
-    // Filter by game name
-    if (searchQuery.trim()) {
+    // Only apply client-side filter if it matches what was sent to server
+    // This provides instant feedback while typing
+    if (searchQuery.trim() && searchQuery !== initialSearch) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(config => 
         config.game?.name?.toLowerCase().includes(query)
       );
     }
     
-    // Filter by GPU
-    if (gpuFilter.trim()) {
+    if (gpuFilter.trim() && gpuFilter !== initialGpu) {
       const gpu = gpuFilter.toLowerCase();
       filtered = filtered.filter(config =>
         config.device?.gpu?.toLowerCase().includes(gpu)
@@ -53,7 +85,7 @@ export default function ConfigBrowserClient({ configs }: ConfigBrowserClientProp
     }
     
     return filtered;
-  }, [configs, searchQuery, gpuFilter]);
+  }, [configs, searchQuery, gpuFilter, initialSearch, initialGpu]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredConfigs.length / ITEMS_PER_PAGE);
