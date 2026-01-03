@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Star, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Star, Zap, ChevronLeft, ChevronRight, Cpu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface GameConfig {
@@ -114,7 +114,7 @@ export default function ConfigBrowserClient({ configs }: ConfigBrowserClientProp
             
             {/* GPU Filter */}
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500" size={20} />
+              <Cpu className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500" size={20} />
               <input
                 type="text"
                 placeholder="Filter by GPU (e.g., Adreno 750)..."
@@ -228,38 +228,46 @@ export default function ConfigBrowserClient({ configs }: ConfigBrowserClientProp
 
             {/* Page Numbers */}
             <div className="flex gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                // Show first page, last page, current page, and pages around current
-                const showPage = page === 1 || 
-                                page === totalPages || 
-                                Math.abs(page - currentPage) <= 1;
+              {(() => {
+                const pages = [];
+                let lastPage = 0;
                 
-                // Show ellipsis
-                if (!showPage) {
-                  if (page === currentPage - 2 || page === currentPage + 2) {
-                    return (
-                      <span key={`ellipsis-${page}`} className="px-3 py-2 text-slate-500">
-                        ...
-                      </span>
+                for (let page = 1; page <= totalPages; page++) {
+                  // Show first page, last page, current page, and pages around current
+                  const showPage = page === 1 || 
+                                  page === totalPages || 
+                                  Math.abs(page - currentPage) <= 1;
+                  
+                  if (showPage) {
+                    // Add ellipsis if there's a gap
+                    if (lastPage > 0 && page - lastPage > 1) {
+                      pages.push(
+                        <span key={`ellipsis-${lastPage}`} className="px-3 py-2 text-slate-500">
+                          ...
+                        </span>
+                      );
+                    }
+                    
+                    pages.push(
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                          currentPage === page
+                            ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white'
+                            : 'bg-slate-900/50 border border-slate-700/50 text-slate-300 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        {page}
+                      </button>
                     );
+                    
+                    lastPage = page;
                   }
-                  return null;
                 }
-
-                return (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      currentPage === page
-                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white'
-                        : 'bg-slate-900/50 border border-slate-700/50 text-slate-300 hover:bg-slate-800/50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
+                
+                return pages;
+              })()}
             </div>
 
             {/* Next Button */}
