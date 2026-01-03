@@ -34,7 +34,8 @@ interface SupabaseGameRun {
 const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,game:games!inner(name),device:devices(model,gpu,android_ver)';
 
 // Maximum number of configs to return from server query
-const MAX_CONFIGS_LIMIT = 100;
+// Limit set to prevent excessive data transfer and maintain performance
+const SERVER_QUERY_LIMIT = 100;
 
 async function getConfigs(searchQuery?: string, gpuFilter?: string): Promise<GameConfig[]> {
   try {
@@ -45,19 +46,21 @@ async function getConfigs(searchQuery?: string, gpuFilter?: string): Promise<Gam
       .order('avg_fps', { ascending: false });
 
     // Apply server-side filtering for game name
-    const trimmedSearch = searchQuery?.trim();
+    // Limit input length to prevent abuse
+    const trimmedSearch = searchQuery?.trim().slice(0, 100);
     if (trimmedSearch) {
       query = query.ilike('game.name', `%${trimmedSearch}%`);
     }
 
     // Apply server-side filtering for GPU
-    const trimmedGpu = gpuFilter?.trim();
+    // Limit input length to prevent abuse
+    const trimmedGpu = gpuFilter?.trim().slice(0, 100);
     if (trimmedGpu) {
       query = query.ilike('device.gpu', `%${trimmedGpu}%`);
     }
 
-    // Limit to MAX_CONFIGS_LIMIT after filtering
-    query = query.limit(MAX_CONFIGS_LIMIT);
+    // Limit to SERVER_QUERY_LIMIT after filtering
+    query = query.limit(SERVER_QUERY_LIMIT);
 
     const { data, error } = await query;
 

@@ -28,6 +28,7 @@ interface ConfigBrowserClientProps {
 }
 
 const ITEMS_PER_PAGE = 15;
+const SEARCH_DEBOUNCE_MS = 500;
 
 export default function ConfigBrowserClient({ configs, initialSearch, initialGpu }: ConfigBrowserClientProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearch || '');
@@ -57,7 +58,7 @@ export default function ConfigBrowserClient({ configs, initialSearch, initialGpu
       const queryString = params.toString();
       const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
       router.replace(newUrl);
-    }, 500); // 500ms debounce
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
   }, [searchQuery, gpuFilter, router, searchParams, pathname]);
@@ -133,7 +134,7 @@ export default function ConfigBrowserClient({ configs, initialSearch, initialGpu
     }
     
     return pages;
-  }, [totalPages, currentPage, setCurrentPage]);
+  }, [totalPages, currentPage]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-950 via-slate-950 to-cyan-950">
