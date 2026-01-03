@@ -382,6 +382,34 @@ export default function App() {
         if (guideHidden === 'true') {
             setShowGuide(false);
         }
+
+        // Check for pending config from Community Browser
+        const pendingConfig = localStorage.getItem('pendingConfig');
+        if (pendingConfig) {
+            try {
+                const parsed = JSON.parse(pendingConfig);
+                const data = parsed.config || parsed;
+                if (data.id) {
+                    const containerName = parsed.containerName || data.name || "Community Config";
+                    
+                    if (data.dxwrapperConfig) {
+                        const dxConfig = parseKV(data.dxwrapperConfig);
+                        const syncedValue = dxConfig.gpuName || dxConfig.renderer || "";
+                        dxConfig.renderer = syncedValue;
+                        dxConfig.gpuName = syncedValue;
+                        data.dxwrapperConfig = stringifyKV(dxConfig);
+                    }
+
+                    setConfig({ ...data, containerName });
+                    setIsImporting(false);
+                    // Clear the pending config
+                    localStorage.removeItem('pendingConfig');
+                }
+            } catch (e) {
+                console.error('Failed to load pending config:', e);
+                localStorage.removeItem('pendingConfig');
+            }
+        }
     }, []);
 
     const handleHideGuide = () => {
