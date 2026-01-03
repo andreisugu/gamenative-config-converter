@@ -20,7 +20,8 @@ import {
     RefreshCw,
     Lock,
     ExternalLink,
-    Fingerprint
+    Fingerprint,
+    X
 } from 'lucide-react';
 
 // --- TYPES ---
@@ -132,6 +133,113 @@ const parseDrives = (str: string) => {
 const stringifyDrives = (arr: { letter: string; path: string }[]) => {
     return arr.map(d => `${d.letter}:${d.path}`).join('');
 };
+
+// Component to render JSON with syntax highlighting
+function JsonHighlight({ json }: { json: string }) {
+  const highlightJson = (jsonString: string) => {
+    // Split JSON into lines for processing
+    const lines = jsonString.split('\n');
+    
+    return lines.map((line, lineIndex) => {
+      const parts: React.JSX.Element[] = [];
+      let processed = false;
+
+      // Check for keys (property names)
+      const keyMatch = /"([^"]+)":\s*/.exec(line);
+      if (keyMatch) {
+        const keyStart = keyMatch.index;
+        const keyEnd = keyStart + keyMatch[0].length;
+        
+        // Add text before key
+        if (keyStart > 0) {
+          parts.push(<span key={`${lineIndex}-pre`}>{line.substring(0, keyStart)}</span>);
+        }
+        
+        // Add colored key
+        parts.push(
+          <span key={`${lineIndex}-key`} className="text-cyan-400">
+            {keyMatch[0].substring(0, keyMatch[0].indexOf(':') + 1)}
+          </span>
+        );
+        
+        // Process the value part
+        const valuePart = line.substring(keyEnd);
+        
+        // String values
+        if (valuePart.match(/^\s*".*"[,}]?$/)) {
+          const stringMatch = /^\s*(".*?")/g.exec(valuePart);
+          if (stringMatch) {
+            parts.push(<span key={`${lineIndex}-ws`}>{valuePart.substring(0, stringMatch.index)}</span>);
+            parts.push(
+              <span key={`${lineIndex}-str`} className="text-green-400">
+                {stringMatch[1]}
+              </span>
+            );
+            parts.push(<span key={`${lineIndex}-end`}>{valuePart.substring(stringMatch.index + stringMatch[1].length)}</span>);
+            processed = true;
+          }
+        }
+        // Boolean values
+        else if (valuePart.match(/^\s*(true|false)/)) {
+          const boolMatch = /^\s*(true|false)/g.exec(valuePart);
+          if (boolMatch) {
+            parts.push(<span key={`${lineIndex}-ws`}>{valuePart.substring(0, boolMatch.index)}</span>);
+            parts.push(
+              <span key={`${lineIndex}-bool`} className="text-orange-400">
+                {boolMatch[1]}
+              </span>
+            );
+            parts.push(<span key={`${lineIndex}-end`}>{valuePart.substring(boolMatch.index + boolMatch[1].length)}</span>);
+            processed = true;
+          }
+        }
+        // Number values
+        else if (valuePart.match(/^\s*-?\d+(?:\.\d+)?/)) {
+          const numMatch = /^\s*(-?\d+(?:\.\d+)?)/g.exec(valuePart);
+          if (numMatch) {
+            parts.push(<span key={`${lineIndex}-ws`}>{valuePart.substring(0, numMatch.index)}</span>);
+            parts.push(
+              <span key={`${lineIndex}-num`} className="text-yellow-400">
+                {numMatch[1]}
+              </span>
+            );
+            parts.push(<span key={`${lineIndex}-end`}>{valuePart.substring(numMatch.index + numMatch[1].length)}</span>);
+            processed = true;
+          }
+        }
+        // Null values
+        else if (valuePart.match(/^\s*null/)) {
+          const nullMatch = /^\s*(null)/g.exec(valuePart);
+          if (nullMatch) {
+            parts.push(<span key={`${lineIndex}-ws`}>{valuePart.substring(0, nullMatch.index)}</span>);
+            parts.push(
+              <span key={`${lineIndex}-null`} className="text-purple-400">
+                {nullMatch[1]}
+              </span>
+            );
+            parts.push(<span key={`${lineIndex}-end`}>{valuePart.substring(nullMatch.index + nullMatch[1].length)}</span>);
+            processed = true;
+          }
+        }
+        
+        if (!processed) {
+          parts.push(<span key={`${lineIndex}-val`}>{valuePart}</span>);
+        }
+      } else {
+        // Line without key-value (brackets, braces, etc.)
+        parts.push(<span key={`${lineIndex}-plain`} className="text-slate-600">{line}</span>);
+      }
+
+      return (
+        <div key={lineIndex}>
+          {parts}
+        </div>
+      );
+    });
+  };
+
+  return <>{highlightJson(json)}</>;
+}
 
 // --- PRESET HELPERS ---
 
@@ -260,6 +368,7 @@ export default function App() {
     const [activeTab, setActiveTab] = useState('general');
     const [isImporting, setIsImporting] = useState(true);
     const [error, setError] = useState("");
+    const [showGuide, setShowGuide] = useState(true);
 
     const converterUrl = "https://andreisugu.github.io/gamenative-config-tools/config-converter";
 
@@ -267,7 +376,18 @@ export default function App() {
         document.documentElement.classList.add('dark');
         document.body.style.backgroundColor = '#020617';
         document.body.style.colorScheme = 'dark';
+        
+        // Check localStorage for guide visibility
+        const guideHidden = localStorage.getItem('configEditorGuideHidden');
+        if (guideHidden === 'true') {
+            setShowGuide(false);
+        }
     }, []);
+
+    const handleHideGuide = () => {
+        setShowGuide(false);
+        localStorage.setItem('configEditorGuideHidden', 'true');
+    };
 
     const handleImport = () => {
         try {
@@ -287,6 +407,7 @@ export default function App() {
 
             setConfig({ ...data, containerName });
             setIsImporting(false);
+            setRawJson(""); // Clear the input after successful import
             setError("");
         } catch (e: any) {
             setError("Failed to parse JSON.");
@@ -351,15 +472,49 @@ export default function App() {
             </div>
 
             <div className="space-y-6">
+            <div className="relative">
             <textarea
-            className="w-full h-80 p-6 font-mono text-[11px] bg-slate-950 border border-slate-900 rounded-xl outline-none focus:border-blue-500/50 transition-all resize-none text-slate-400"
+            className="w-full h-80 p-6 font-mono text-[11px] bg-slate-950 border border-slate-900 rounded-xl outline-none focus:border-blue-500/50 transition-all resize-none"
             placeholder="Paste Container JSON..."
             value={rawJson}
             onChange={(e) => setRawJson(e.target.value)}
+            style={{ 
+              caretColor: 'white',
+              color: rawJson ? 'transparent' : 'rgb(148 163 184)'
+            }}
             />
+            {rawJson && (
+            <div className="absolute inset-0 p-6 font-mono text-[11px] pointer-events-none overflow-auto rounded-xl">
+            <JsonHighlight json={rawJson} />
+            </div>
+            )}
+            </div>
             {error && <div className="text-red-500 text-[10px] font-black uppercase tracking-widest italic">{error}</div>}
             <div className="flex flex-col gap-8">
             <button onClick={handleImport} className="bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-xl transition-all uppercase text-xs tracking-[0.2em] active:scale-95 shadow-xl shadow-blue-900/20">Load Config</button>
+
+            {/* Mini Guide */}
+            {showGuide && (
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4 relative">
+            <button
+                onClick={handleHideGuide}
+                className="absolute top-4 right-4 p-1 text-slate-600 hover:text-slate-400 transition-colors"
+                title="Hide this guide"
+            >
+                <X size={16} />
+            </button>
+            <h3 className="text-sm font-black text-slate-100 uppercase tracking-tight pr-8">How to Get a Config</h3>
+            <ol className="text-[11px] text-slate-400 space-y-2 list-decimal list-inside">
+            <li>Go to <a href="https://gamenative.app/compatibility/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">GameNative Compatibility List</a></li>
+            <li>Select a report for the game you want</li>
+            <li>Click <span className="text-slate-200 font-bold">"View Config"</span></li>
+            <li>Copy everything inside the popup</li>
+            <li>Paste into the <a href={converterUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">Config Converter</a></li>
+            <li>Convert it and copy the JSON output</li>
+            <li>Paste the JSON here and click <span className="text-slate-200 font-bold">"Load Config"</span></li>
+            </ol>
+            </div>
+            )}
 
             <div className="text-center border-t border-slate-900 pt-8">
             <p className="text-[10px] text-slate-600 uppercase font-black tracking-widest mb-3 italic">Only have a raw config string?</p>

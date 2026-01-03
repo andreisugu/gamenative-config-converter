@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { X } from 'lucide-react';
 
 // TypeScript interface for the Config object
 interface Config {
@@ -376,16 +377,28 @@ export default function ConfigConverterPage() {
   const [isConverting, setIsConverting] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [convertSteamId, setConvertSteamId] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup timeout on unmount
   useEffect(() => {
+    // Check localStorage for guide visibility
+    const guideHidden = localStorage.getItem('configConverterGuideHidden');
+    if (guideHidden === 'true') {
+      setShowGuide(false);
+    }
+    
     return () => {
       if (copyTimeoutRef.current) {
         clearTimeout(copyTimeoutRef.current);
       }
     };
   }, []);
+
+  const handleHideGuide = () => {
+    setShowGuide(false);
+    localStorage.setItem('configConverterGuideHidden', 'true');
+  };
 
   const handleConvert = async () => {
     setError('');
@@ -524,19 +537,35 @@ export default function ConfigConverterPage() {
         </div>
 
         {/* Info Box */}
-        <div className="bg-gray-800/50 border-l-4 border-cyan-500 p-4 rounded-lg mb-6 backdrop-blur-sm">
-          <h3 className="text-cyan-400 font-semibold mb-2">How to use:</h3>
-          <p className="text-gray-300 text-sm leading-relaxed">
-            Copy the config of the game you want by clicking "View Config" on a report you want and selecting all the text inside the popout. 
-            Then paste the text in here and click convert.<br />
-            <span className="text-gray-400 text-xs mt-1 inline-block">
-              Note: Configuration format is key-value pairs on separate lines (Line N = Key, Line N+1 = Value). 
+        {showGuide && (
+        <div className="bg-gray-800/50 border-l-4 border-cyan-500 p-4 rounded-lg mb-6 backdrop-blur-sm relative">
+          <button
+            onClick={handleHideGuide}
+            className="absolute top-4 right-4 p-1 text-gray-600 hover:text-gray-400 transition-colors"
+            title="Hide this guide"
+          >
+            <X size={16} />
+          </button>
+          <h3 className="text-cyan-400 font-semibold mb-2 pr-8">How to Get a Config:</h3>
+          <ol className="text-gray-300 text-sm leading-relaxed list-decimal list-inside space-y-1 mb-3">
+            <li>Go to <a href="https://gamenative.app/compatibility/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">GameNative Compatibility List</a></li>
+            <li>Select a report for the game you want</li>
+            <li>Click <span className="text-white font-semibold">"View Config"</span></li>
+            <li>Copy everything inside the popup</li>
+            <li>Paste into the input box below and click <span className="text-white font-semibold">"Convert to JSON"</span> or <span className="text-white font-semibold">"Convert & Download"</span></li>
+            <li>Copy the JSON output or download the file</li>
+            <li>Paste into the <a href="https://andreisugu.github.io/gamenative-config-tools/config-editor" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">Config Editor</a> if you want to make changes</li>
+          </ol>
+          <div className="border-t border-gray-700 pt-3 mt-3">
+            <span className="text-gray-400 text-xs inline-block">
+              <strong className="text-gray-300">Note:</strong> Configuration format is key-value pairs on separate lines (Line N = Key, Line N+1 = Value). 
               Values like <code className="bg-gray-900 px-1 py-0.5 rounded text-orange-400">true</code>/
               <code className="bg-gray-900 px-1 py-0.5 rounded text-orange-400">false</code> will be converted to booleans, 
               and numeric strings will be converted to numbers.
             </span>
-          </p>
+          </div>
         </div>
+        )}
 
         {/* Main Content - Split View */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
