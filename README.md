@@ -4,8 +4,10 @@
 
 Built with **Next.js**, **TypeScript**, and **Tailwind CSS** for a modern, type-safe, and responsive experience.
 
+### [**🏠 Main Site**](https://andreisugu.github.io/gamenative-config-tools/) - Central hub for all tools
 ### 🔄 [**Launch Config Converter**](https://andreisugu.github.io/gamenative-config-tools/config-converter)
 ### ✏️ [**Launch Config Editor**](https://andreisugu.github.io/gamenative-config-tools/config-editor)
+### 🔍 [**Launch Config Browser**](https://andreisugu.github.io/gamenative-config-tools/config-browser)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://andreisugu.github.io/gamenative-config-tools/)
@@ -25,13 +27,16 @@ The GameNative/Winlator community is amazing. Users rigorously test games and up
 
 ## ✅ The Solution
 
-This project provides **two complementary web tools** to streamline your GameNative configuration workflow:
+This project provides **three complementary web tools** to streamline your GameNative configuration workflow:
 
 ### 🔄 Config Converter
 Takes the "messy" raw text dump from community reports and instantly compiles it into a clean, structured `.json` file that the GameNative app can import directly.
 
 ### ✏️ Config Editor
 A powerful visual editor that lets you fine-tune every aspect of your configuration with an intuitive interface. Edit settings across 10 organized categories including graphics, emulation, controller, and more.
+
+### 🔍 Config Browser
+Browse and search through community-submitted game configurations. Filter by game name or GPU to find optimal settings shared by other users.
 
 **Stop typing. Start playing.**
 
@@ -54,19 +59,26 @@ A powerful visual editor that lets you fine-tune every aspect of your configurat
 * **Import/Export:** Load existing JSON configs, make changes, and export updated versions.
 * **Cross-Tool Integration:** Seamlessly switch between Converter and Editor as needed.
 
+### Config Browser
+* **Community Database:** Access community-submitted game configurations from the GameNative compatibility database.
+* **Advanced Search:** Filter configurations by game name or GPU model to find relevant settings.
+* **Quick Preview:** View configuration details including rating, FPS, device specs, and user notes.
+* **One-Click Import:** Load configurations directly into the Config Editor for further customization.
+
 ---
 
 ## 🚀 How to Use
 
 ### Quick Start: Get a Config from the Community
 
-1. Go to the [GameNative Compatibility List](https://gamenative.app/compatibility/)
-2. Select a report for the game you want
-3. Click **"View Config"**
-4. Copy everything inside the popup
-5. Paste into the [Config Converter](https://andreisugu.github.io/gamenative-config-tools/config-converter)
-6. Convert it and copy the JSON output
-7. Paste into the [Config Editor](https://andreisugu.github.io/gamenative-config-tools/config-editor) if you want to make changes, or import directly into GameNative
+1. Visit the [**Main Site**](https://andreisugu.github.io/gamenative-config-tools/) to access all tools
+2. Go to the [GameNative Compatibility List](https://gamenative.app/compatibility/) or use the [Config Browser](https://andreisugu.github.io/gamenative-config-tools/config-browser)
+3. Select a report for the game you want
+4. Click **"View Config"**
+5. Copy everything inside the popup
+6. Paste into the [Config Converter](https://andreisugu.github.io/gamenative-config-tools/config-converter)
+7. Convert it and copy the JSON output
+8. Paste into the [Config Editor](https://andreisugu.github.io/gamenative-config-tools/config-editor) if you want to make changes, or import directly into GameNative
 
 ### Workflow 1: Converting Raw Configs
 
@@ -117,6 +129,14 @@ The editor provides a structured interface for modifying configuration JSON:
 2. Form controls are dynamically generated based on the configuration schema.
 3. Special handling for complex fields like CPU affinity grids, environment variables, and drive mappings.
 4. Real-time synchronization between related fields (e.g., GPU name and renderer) to maintain consistency with the "Edit Container" interface.
+
+### Config Browser Architecture
+
+The browser connects to the community database to provide searchable access:
+1. Server-side rendering with Next.js for optimal performance and SEO.
+2. Supabase integration for real-time access to community-submitted configurations.
+3. Server-side filtering to efficiently handle large datasets.
+4. Seamless integration with the Config Editor via local storage for one-click editing.
 
 ---
 
