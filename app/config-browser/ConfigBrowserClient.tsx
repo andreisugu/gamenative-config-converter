@@ -222,10 +222,10 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
       let countResult = null;
       if (needsCount) {
         // Build count query with same joins and filters as data query
-        // Must include inner joins to apply the same filtering
+        // Select only 'id' to minimize data transfer while maintaining joins for filtering
         let countQuery = supabase
           .from('game_runs')
-          .select('*, games!inner(id,name), devices!inner(id,gpu)', { count: 'exact', head: true });
+          .select('id, games!inner(id), devices!inner(id)', { count: 'exact', head: true });
 
         // Apply same filters to count query
         if (selectedGame) {
@@ -275,12 +275,14 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
   useEffect(() => {
     setCurrentPage(1); // Reset to page 1 before fetching
     fetchConfigs(true, 1);
-  }, [debouncedSearchTerm, debouncedGpu, selectedGame, selectedGpu, sortOption, fetchConfigs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm, debouncedGpu, selectedGame, selectedGpu, sortOption]);
 
   // Fetch without count when only page changes
   useEffect(() => {
     fetchConfigs(false, currentPage);
-  }, [currentPage, fetchConfigs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   // Update URL Params (Optional, for sharing links)
   useEffect(() => {
