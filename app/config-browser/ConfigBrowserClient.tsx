@@ -174,10 +174,10 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
   }, [debouncedGpu, selectedGpu]);
 
   // --- 2. Main Data Fetching ---
-  const fetchConfigs = useCallback(async (needsCount: boolean) => {
+  const fetchConfigs = useCallback(async (needsCount: boolean, page: number) => {
     setIsLoading(true);
     try {
-      // Build base query for data fetch
+      // Build base query for data fetch (includes joins for games and devices)
       let dataQuery = supabase
         .from('game_runs')
         .select(GAME_RUNS_QUERY);
@@ -214,17 +214,18 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
       }
 
       // Calculate range for pagination
-      const from = (currentPage - 1) * ITEMS_PER_PAGE;
+      const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
       dataQuery = dataQuery.range(from, to);
 
       // Fetch count only when filters change, not on every page change
       let countResult = null;
       if (needsCount) {
-        // Build count query with same filters
+        // Build count query with same joins and filters as data query
+        // Must include inner joins to apply the same filtering
         let countQuery = supabase
           .from('game_runs')
-          .select('*', { count: 'exact', head: true });
+          .select('*, games!inner(id,name), devices!inner(id,gpu)', { count: 'exact', head: true });
 
         // Apply same filters to count query
         if (selectedGame) {
@@ -268,18 +269,18 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, debouncedGpu, selectedGame, selectedGpu, sortOption, currentPage]);
+  }, [debouncedSearchTerm, debouncedGpu, selectedGame, selectedGpu, sortOption]);
 
   // Fetch with count when filters or sort changes
   useEffect(() => {
     setCurrentPage(1); // Reset to page 1 before fetching
-    fetchConfigs(true);
-  }, [debouncedSearchTerm, debouncedGpu, selectedGame, selectedGpu, sortOption]);
+    fetchConfigs(true, 1);
+  }, [debouncedSearchTerm, debouncedGpu, selectedGame, selectedGpu, sortOption, fetchConfigs]);
 
   // Fetch without count when only page changes
   useEffect(() => {
-    fetchConfigs(false);
-  }, [currentPage]);
+    fetchConfigs(false, currentPage);
+  }, [currentPage, fetchConfigs]);
 
   // Update URL Params (Optional, for sharing links)
   useEffect(() => {
