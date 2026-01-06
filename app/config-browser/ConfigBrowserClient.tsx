@@ -64,6 +64,7 @@ interface ConfigBrowserClientProps {
 
 const ITEMS_PER_PAGE = 15;
 const DEBOUNCE_MS = 300;
+const SUGGESTION_LIMIT = 6;
 const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,app_ver,tags,games!inner(id,name),devices!inner(id,model,gpu,android_ver)';
 
 // --- Helper Hook: useDebounce ---
@@ -133,7 +134,7 @@ export default function ConfigBrowserClient() {
         .from('games')
         .select('id, name')
         .ilike('name', `%${debouncedSearchTerm}%`)
-        .limit(6);
+        .limit(SUGGESTION_LIMIT);
 
       if (!error && data) {
         setSuggestions(data);
@@ -178,10 +179,10 @@ export default function ConfigBrowserClient() {
         .limit(10);
 
       if (!error && data) {
-        // Remove duplicates and limit to 6
+        // Remove duplicates and limit
         const uniqueGpus = Array.from(new Set(data.map(d => d.gpu)))
           .filter(gpu => gpu) // Filter out null/undefined values
-          .slice(0, 6)
+          .slice(0, SUGGESTION_LIMIT)
           .map(gpu => ({ gpu }));
         setGpuSuggestions(uniqueGpus);
         setShowGpuSuggestions(true);
@@ -208,10 +209,10 @@ export default function ConfigBrowserClient() {
         .limit(10);
 
       if (!error && data) {
-        // Remove duplicates and limit to 6
+        // Remove duplicates and limit
         const uniqueDevices = Array.from(new Set(data.map(d => d.model)))
           .filter(model => model) // Filter out null/undefined values
-          .slice(0, 6)
+          .slice(0, SUGGESTION_LIMIT)
           .map(model => ({ model }));
         setDeviceSuggestions(uniqueDevices);
         setShowDeviceSuggestions(true);
@@ -591,7 +592,7 @@ export default function ConfigBrowserClient() {
                 <Smartphone className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${isSearchingDevices ? 'text-green-400' : 'text-slate-500 group-focus-within:text-green-400'}`} size={18} />
                 <input
                   type="text"
-                  placeholder="Device (e.g. SM-S918B)"
+                  placeholder="Device (e.g. Pixel, Galaxy)"
                   value={deviceFilter}
                   onChange={(e) => {
                     setDeviceFilter(e.target.value);
