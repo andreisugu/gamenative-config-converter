@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function Sidebar() {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Default to expanded
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
 
@@ -30,10 +30,12 @@ export default function Sidebar() {
       if (mobile) {
         setIsExpanded(false);
       } else {
-        // On desktop, use saved preference
+        // On desktop, use saved preference or default to expanded
         const saved = localStorage.getItem('sidebarExpanded');
         if (saved !== null) {
           setIsExpanded(saved === 'true');
+        } else {
+          setIsExpanded(true); // Default to expanded on desktop
         }
       }
     };
@@ -94,9 +96,7 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside 
-        className={`fixed left-0 top-0 h-screen bg-gray-900/95 backdrop-blur-sm border-r border-gray-800 transition-all duration-300 ease-in-out ${
-          isMobile ? 'z-50' : 'z-50'
-        } ${
+        className={`fixed left-0 top-0 h-screen bg-gray-900/95 backdrop-blur-sm border-r border-gray-800 transition-all duration-300 ease-in-out z-50 ${
           isMobile 
             ? (isExpanded ? 'w-64' : 'w-0 -translate-x-full') 
             : (isExpanded ? 'w-64' : 'w-16')
@@ -188,6 +188,7 @@ export default function Sidebar() {
       )}
 
       {/* Spacer to prevent content from going under sidebar - only on desktop */}
+      {/* This is necessary because the sidebar is fixed positioned and would otherwise overlap content */}
       {!isMobile && <div className={`transition-all duration-300 ${isExpanded ? 'ml-64' : 'ml-16'}`} />}
     </>
   );
