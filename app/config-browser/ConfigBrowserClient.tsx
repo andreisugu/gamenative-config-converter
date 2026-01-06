@@ -274,6 +274,11 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
     return { totalPages: total, paginatedConfigs: paginated };
   }, [configs, currentPage]);
 
+  // Scroll to top when changing pages
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
+
 
   // --- 4. Handlers ---
 
@@ -313,6 +318,32 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
       localStorage.setItem('pendingConfig', JSON.stringify(exportData));
       router.push('/config-editor');
     } catch (e) { console.error(e); }
+  };
+
+  const handleDownloadConfig = (config: GameConfig) => {
+    const exportData = {
+      version: 1,
+      exportedFrom: "CommunityBrowser",
+      timestamp: Date.now(),
+      containerName: config.game?.name || "Community Config",
+      config: config.configs
+    };
+    
+    try {
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const fileName = `${(config.game?.name || 'config').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${Date.now()}.json`;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Error downloading config:', e);
+    }
   };
 
   return (
@@ -532,13 +563,22 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
 
                   {/* Footer Action */}
                   <div className="p-4">
-                    <button
-                      onClick={() => handleOpenInEditor(config)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-cyan-900/20 group-hover:shadow-cyan-500/20 active:scale-[0.98]"
-                    >
-                      <Download size={16} />
-                      Load Config
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleOpenInEditor(config)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-cyan-900/20 group-hover:shadow-cyan-500/20 active:scale-[0.98]"
+                      >
+                        <Download size={16} />
+                        Load Config
+                      </button>
+                      <button
+                        onClick={() => handleDownloadConfig(config)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-purple-900/20 group-hover:shadow-purple-500/20 active:scale-[0.98]"
+                      >
+                        <Download size={16} />
+                        Download JSON
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
