@@ -41,6 +41,9 @@ jobs:
         with:
           path: ./out
 
+      - name: List out directory
+        run: ls -la ./out || echo "No out directory found"
+
   deploy:
     environment:
       name: github-pages
