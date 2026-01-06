@@ -12,7 +12,6 @@ interface GameConfig {
   rating: number;
   avg_fps: number;
   notes: string | null;
-  configs: any;
   created_at: string;
   app_version: string | null;
   tags: string | null;
@@ -33,7 +32,6 @@ interface SupabaseGameRun {
   rating: number;
   avg_fps: number;
   notes: string | null;
-  configs: any;
   created_at: string;
   app_version: { semver: string } | null;
   tags: string | null;
@@ -73,7 +71,8 @@ interface ConfigBrowserClientProps {
 const ITEMS_PER_PAGE = 15;
 const DEBOUNCE_MS = 300;
 const SUGGESTION_LIMIT = 6;
-const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,app_version:app_versions(semver),tags,game:games!inner(id,name),device:devices!inner(id,model,gpu,android_ver)';
+const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,created_at,app_version:app_versions(semver),tags,game:games!inner(id,name),device:devices!inner(id,model,gpu,android_ver)';
+const COUNT_QUERY = 'id, game:games!inner(id, name), device:devices!inner(id, gpu, model)';
 
 // --- Helper Hook: useDebounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -279,12 +278,10 @@ export default function ConfigBrowserClient() {
       // Fetch count only when filters change, not on every page change
       let countResult = null;
       if (needsCount) {
-        // Build count query with same joins and filters as data query
-        // Select only 'id' to minimize data transfer while maintaining joins for filtering
-        // Must include 'name', 'gpu', and 'model' in the select to allow filtering on them
+        // Build count query with minimal fields for filtering
         let countQuery = supabase
           .from('game_runs')
-          .select('id, game:games!inner(id, name), device:devices!inner(id, gpu, model)', { count: 'exact', head: true });
+          .select(COUNT_QUERY, { count: 'exact', head: true });
 
         // Apply same filters to count query
         if (selectedGame) {
@@ -318,7 +315,6 @@ export default function ConfigBrowserClient() {
         rating: item.rating,
         avg_fps: item.avg_fps,
         notes: item.notes,
-        configs: item.configs,
         created_at: item.created_at,
         app_version: item.app_version?.semver || null,
         tags: item.tags,
@@ -474,30 +470,49 @@ export default function ConfigBrowserClient() {
     setSelectedDevice(null);
   };
 
-  const handleOpenInEditor = (config: GameConfig) => {
-    const exportData = {
-      version: 1,
-      exportedFrom: "CommunityBrowser",
-      timestamp: Date.now(),
-      containerName: config.game?.name || "Community Config",
-      config: config.configs
-    };
+  const handleOpenInEditor = async (config: GameConfig) => {
     try {
+      const { data, error } = await supabase
+        .from('game_runs')
+        .select('configs')
+        .eq('id', config.id)
+        .single();
+      
+      if (error) throw error;
+      
+      const exportData = {
+        version: 1,
+        exportedFrom: "CommunityBrowser",
+        timestamp: Date.now(),
+        containerName: config.game?.name || "Community Config",
+        config: data.configs
+      };
+      
       localStorage.setItem('pendingConfig', JSON.stringify(exportData));
       router.push('/config-editor');
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error('Error loading config:', e); 
+    }
   };
 
-  const handleDownloadConfig = (config: GameConfig) => {
-    const exportData = {
-      version: 1,
-      exportedFrom: "CommunityBrowser",
-      timestamp: Date.now(),
-      containerName: config.game?.name || "Community Config",
-      config: config.configs
-    };
-    
+  const handleDownloadConfig = async (config: GameConfig) => {
     try {
+      const { data, error } = await supabase
+        .from('game_runs')
+        .select('configs')
+        .eq('id', config.id)
+        .single();
+      
+      if (error) throw error;
+      
+      const exportData = {
+        version: 1,
+        exportedFrom: "CommunityBrowser",
+        timestamp: Date.now(),
+        containerName: config.game?.name || "Community Config",
+        config: data.configs
+      };
+      
       const jsonString = JSON.stringify(exportData, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
