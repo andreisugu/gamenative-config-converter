@@ -206,16 +206,22 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
           dataQuery = dataQuery.order('created_at', { ascending: true });
           break;
         case 'rating_desc':
-          dataQuery = dataQuery.order('rating', { ascending: false }).order('avg_fps', { ascending: false });
+          dataQuery = dataQuery
+            .order('rating', { ascending: false, nullsFirst: false })
+            .order('avg_fps', { ascending: false, nullsFirst: false });
           break;
         case 'rating_asc':
-          dataQuery = dataQuery.order('rating', { ascending: true }).order('avg_fps', { ascending: true });
+          dataQuery = dataQuery
+            .order('rating', { ascending: true, nullsFirst: false })
+            .order('avg_fps', { ascending: true, nullsFirst: false });
           break;
         case 'fps_desc':
-          dataQuery = dataQuery.order('avg_fps', { ascending: false }).order('rating', { ascending: false });
+          dataQuery = dataQuery
+            .order('avg_fps', { ascending: false, nullsFirst: false })
+            .order('rating', { ascending: false, nullsFirst: false });
           break;
         case 'fps_asc':
-          dataQuery = dataQuery.order('avg_fps', { ascending: true });
+          dataQuery = dataQuery.order('avg_fps', { ascending: true, nullsFirst: false });
           break;
       }
 
@@ -229,9 +235,10 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
       if (needsCount) {
         // Build count query with same joins and filters as data query
         // Select only 'id' to minimize data transfer while maintaining joins for filtering
+        // Must include 'name' and 'gpu' in the select to allow filtering on them
         let countQuery = supabase
           .from('game_runs')
-          .select('id, games!inner(id), devices!inner(id)', { count: 'exact', head: true });
+          .select('id, games!inner(id, name), devices!inner(id, gpu)', { count: 'exact', head: true });
 
         // Apply same filters to count query
         if (selectedGame) {
