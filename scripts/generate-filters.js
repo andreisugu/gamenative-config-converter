@@ -30,8 +30,21 @@ async function generate() {
       .map(app => ({ id: app.appid, name: app.name }))
       .slice(0, 50000);
     
-    // GPUs from Supabase
-    const { data: devices } = await supabase.from('devices').select('id, model, gpu');
+    // GPUs from generated file or fallback to Supabase
+    let gpus = [];
+    try {
+      const gpuFileResponse = await fetch('./public/gpus.json');
+      if (gpuFileResponse.ok) {
+        gpus = await gpuFileResponse.json();
+        console.log('Using GPUs from public/gpus.json file');
+      } else {
+        throw new Error('public/gpus.json not found');
+      }
+    } catch {
+      console.log('Falling back to Supabase for GPUs');
+      const { data: devices } = await supabase.from('devices').select('gpu');
+      gpus = [...new Set((devices || []).map(d => d.gpu).filter(Boolean))];
+    }
     
     // Devices from Google Play CSV
     const csvResponse = await fetch('http://storage.googleapis.com/play_public/supported_devices.csv');
@@ -60,7 +73,7 @@ async function generate() {
 
     const filterData = {
       games: filteredGames,
-      gpus: [...new Set((devices || []).map(d => d.gpu).filter(Boolean))],
+      gpus: gpus,
       devices: playDevices,
       updatedAt: new Date().toISOString()
     };
