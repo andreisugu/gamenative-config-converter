@@ -199,28 +199,42 @@ export default function ConfigBrowserClient() {
       // Apply sorting to data query
       switch (sortOption) {
         case 'newest':
-          dataQuery = dataQuery.order('created_at', { ascending: false });
+          dataQuery = dataQuery
+            .order('created_at', { ascending: false, nullsFirst: false });
           break;
+
         case 'oldest':
-          dataQuery = dataQuery.order('created_at', { ascending: true });
+          dataQuery = dataQuery
+            .order('created_at', { ascending: true, nullsFirst: false });
           break;
-        case 'rating_desc':
+
+        case 'rating_desc': // Highest Rated
           dataQuery = dataQuery
             .order('rating', { ascending: false, nullsFirst: false })
+            // Tie-breaker: If ratings are equal, show higher FPS first
             .order('avg_fps', { ascending: false, nullsFirst: false });
           break;
-        case 'rating_asc':
+
+        case 'rating_asc': // Lowest Rated
           dataQuery = dataQuery
+            // We use nullsFirst: false here so "Unrated" (null) items don't appear before "1 Star" items
             .order('rating', { ascending: true, nullsFirst: false })
+            // Tie-breaker: If ratings are equal, show lower FPS first
             .order('avg_fps', { ascending: true, nullsFirst: false });
           break;
-        case 'fps_desc':
+
+        case 'fps_desc': // Highest FPS
           dataQuery = dataQuery
             .order('avg_fps', { ascending: false, nullsFirst: false })
+            // Tie-breaker: If FPS is equal, show higher Rating first
             .order('rating', { ascending: false, nullsFirst: false });
           break;
-        case 'fps_asc':
-          dataQuery = dataQuery.order('avg_fps', { ascending: true, nullsFirst: false });
+
+        case 'fps_asc': // Lowest FPS
+          dataQuery = dataQuery
+            .order('avg_fps', { ascending: true, nullsFirst: false })
+            // Tie-breaker: If FPS is equal, show higher Rating first
+            .order('rating', { ascending: false, nullsFirst: false });
           break;
       }
 
