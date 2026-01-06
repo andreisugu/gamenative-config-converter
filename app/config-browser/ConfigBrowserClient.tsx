@@ -551,14 +551,9 @@ export default function ConfigBrowserClient() {
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-cyan-500/20 transition-all"
                 />
                 {searchTerm && (
-                  <>
-                    <button onClick={handleGameSearch} className="absolute right-8 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-cyan-400 transition-colors" title="Search">
-                      <Search size={14} />
-                    </button>
-                    <button onClick={clearGameSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
-                      <X size={14} />
-                    </button>
-                  </>
+                  <button onClick={clearGameSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
+                    <X size={14} />
+                  </button>
                 )}
               </div>
 
@@ -599,14 +594,9 @@ export default function ConfigBrowserClient() {
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-purple-500/20 transition-all"
                 />
                 {gpuFilter && (
-                  <>
-                    <button onClick={handleGpuSearch} className="absolute right-8 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-purple-400 transition-colors" title="Search">
-                      <Search size={14} />
-                    </button>
-                    <button onClick={clearGpuSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
-                      <X size={14} />
-                    </button>
-                  </>
+                  <button onClick={clearGpuSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
+                    <X size={14} />
+                  </button>
                 )}
               </div>
 
@@ -647,14 +637,9 @@ export default function ConfigBrowserClient() {
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-green-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-green-500/20 transition-all"
                 />
                 {deviceFilter && (
-                  <>
-                    <button onClick={handleDeviceSearch} className="absolute right-8 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-green-400 transition-colors" title="Search">
-                      <Search size={14} />
-                    </button>
-                    <button onClick={clearDeviceSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
-                      <X size={14} />
-                    </button>
-                  </>
+                  <button onClick={clearDeviceSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
+                    <X size={14} />
+                  </button>
                 )}
               </div>
 
