@@ -9,7 +9,12 @@ async function generate() {
     console.log('Generating all filters...');
     
     // Steam games
-    const steamResponse = await fetch('https://api.steampowered.com/ISteamApps/GetAppList/v2/');
+    const steamResponse = await fetch('http://api.steampowered.com/ISteamApps/GetAppList/v0002/?format=json');
+    
+    if (!steamResponse.ok) {
+      throw new Error(`Steam API returned ${steamResponse.status}`);
+    }
+    
     const steamData = await steamResponse.json();
     const steamGames = steamData.applist.apps
       .filter(app => {

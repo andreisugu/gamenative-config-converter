@@ -3,7 +3,12 @@ const fs = require('fs');
 async function generateGames() {
   try {
     // Fetch Steam games from API
-    const steamResponse = await fetch('https://api.steampowered.com/ISteamApps/GetAppList/v2/');
+    const steamResponse = await fetch('http://api.steampowered.com/ISteamApps/GetAppList/v0002/?format=json');
+    
+    if (!steamResponse.ok) {
+      throw new Error(`Steam API returned ${steamResponse.status}`);
+    }
+    
     const steamData = await steamResponse.json();
     
     // Filter and clean Steam games
