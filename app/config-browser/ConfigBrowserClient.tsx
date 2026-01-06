@@ -49,8 +49,7 @@ interface GpuSuggestion {
 type SortOption = 'newest' | 'oldest' | 'rating_desc' | 'rating_asc' | 'fps_desc' | 'fps_asc';
 
 interface ConfigBrowserClientProps {
-  initialSearch?: string;
-  initialGpu?: string;
+  // No props needed - searchParams are read from URL
 }
 
 // --- Constants ---
@@ -69,16 +68,20 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export default function ConfigBrowserClient({ initialSearch, initialGpu }: ConfigBrowserClientProps) {
+export default function ConfigBrowserClient() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  
   // --- State ---
   const [configs, setConfigs] = useState<GameConfig[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Filters
-  const [searchTerm, setSearchTerm] = useState(initialSearch || '');
+  // Filters - initialize from URL searchParams
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedGame, setSelectedGame] = useState<GameSuggestion | null>(null);
-  const [gpuFilter, setGpuFilter] = useState(initialGpu || '');
+  const [gpuFilter, setGpuFilter] = useState(searchParams.get('gpu') || '');
   const [selectedGpu, setSelectedGpu] = useState<GpuSuggestion | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>('newest');
   
@@ -96,10 +99,6 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
 
   const debouncedSearchTerm = useDebounce(searchTerm, DEBOUNCE_MS);
   const debouncedGpu = useDebounce(gpuFilter, DEBOUNCE_MS);
