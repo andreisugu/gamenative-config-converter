@@ -42,6 +42,10 @@ interface GameSuggestion {
   name: string;
 }
 
+interface GpuSuggestion {
+  gpu: string;
+}
+
 type SortOption = 'newest' | 'rating_desc' | 'fps_desc' | 'fps_asc';
 
 interface ConfigBrowserClientProps {
@@ -53,8 +57,8 @@ interface ConfigBrowserClientProps {
 
 const ITEMS_PER_PAGE = 15;
 const DEBOUNCE_MS = 300;
-const SERVER_QUERY_LIMIT = 100;
-const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,game:games!inner(id,name),device:devices(id,model,gpu,android_ver)';
+const SERVER_QUERY_LIMIT = 1000;
+const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,game:games!inner(id,name),device:devices!inner(id,model,gpu,android_ver)';
 
 // --- Helper Hook: useDebounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -75,6 +79,7 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
   const [searchTerm, setSearchTerm] = useState(initialSearch || '');
   const [selectedGame, setSelectedGame] = useState<GameSuggestion | null>(null);
   const [gpuFilter, setGpuFilter] = useState(initialGpu || '');
+  const [selectedGpu, setSelectedGpu] = useState<GpuSuggestion | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>('rating_desc');
   
   // Autocomplete State
@@ -82,6 +87,12 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingGames, setIsSearchingGames] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  
+  // GPU Autocomplete State
+  const [gpuSuggestions, setGpuSuggestions] = useState<GpuSuggestion[]>([]);
+  const [showGpuSuggestions, setShowGpuSuggestions] = useState(false);
+  const [isSearchingGpus, setIsSearchingGpus] = useState(false);
+  const gpuWrapperRef = useRef<HTMLDivElement>(null);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -124,10 +135,42 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
       }
+      if (gpuWrapperRef.current && !gpuWrapperRef.current.contains(event.target as Node)) {
+        setShowGpuSuggestions(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // --- Fetch GPU Suggestions (Autocomplete) ---
+  useEffect(() => {
+    const fetchGpuSuggestions = async () => {
+      if (!debouncedGpu || selectedGpu) {
+        setGpuSuggestions([]);
+        return;
+      }
+
+      setIsSearchingGpus(true);
+      const { data, error } = await supabase
+        .from('devices')
+        .select('gpu')
+        .ilike('gpu', `%${debouncedGpu}%`)
+        .limit(6);
+
+      if (!error && data) {
+        // Remove duplicates
+        const uniqueGpus = Array.from(new Set(data.map(d => d.gpu)))
+          .map(gpu => ({ gpu }))
+          .slice(0, 6);
+        setGpuSuggestions(uniqueGpus);
+        setShowGpuSuggestions(true);
+      }
+      setIsSearchingGpus(false);
+    };
+
+    fetchGpuSuggestions();
+  }, [debouncedGpu, selectedGpu]);
 
   // --- 2. Main Data Fetching ---
   const fetchConfigs = useCallback(async () => {
@@ -144,25 +187,11 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
         query = query.ilike('games.name', `%${debouncedSearchTerm}%`);
       }
 
-      // Filter by GPU
-      if (debouncedGpu) {
+      // Filter by GPU (exact match if selected, otherwise fuzzy text search)
+      if (selectedGpu) {
+        query = query.eq('devices.gpu', selectedGpu.gpu);
+      } else if (debouncedGpu) {
         query = query.ilike('devices.gpu', `%${debouncedGpu}%`);
-      }
-
-      // Sorting Logic
-      switch (sortOption) {
-        case 'newest':
-          query = query.order('created_at', { ascending: false });
-          break;
-        case 'rating_desc':
-          query = query.order('rating', { ascending: false }).order('avg_fps', { ascending: false });
-          break;
-        case 'fps_desc':
-          query = query.order('avg_fps', { ascending: false }).order('rating', { ascending: false });
-          break;
-        case 'fps_asc':
-          query = query.order('avg_fps', { ascending: true });
-          break;
       }
 
       query = query.limit(SERVER_QUERY_LIMIT);
@@ -183,14 +212,37 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
         device: Array.isArray(item.device) && item.device.length > 0 ? item.device[0] : null
       }));
 
-      setConfigs(transformedData);
+      // Client-side sorting for accurate results
+      const sortedData = [...transformedData];
+      switch (sortOption) {
+        case 'newest':
+          sortedData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          break;
+        case 'rating_desc':
+          sortedData.sort((a, b) => {
+            if (b.rating !== a.rating) return b.rating - a.rating;
+            return b.avg_fps - a.avg_fps;
+          });
+          break;
+        case 'fps_desc':
+          sortedData.sort((a, b) => {
+            if (b.avg_fps !== a.avg_fps) return b.avg_fps - a.avg_fps;
+            return b.rating - a.rating;
+          });
+          break;
+        case 'fps_asc':
+          sortedData.sort((a, b) => a.avg_fps - b.avg_fps);
+          break;
+      }
+
+      setConfigs(sortedData);
     } catch (error) {
       console.error('Error fetching configs:', error);
       setConfigs([]);
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, debouncedGpu, selectedGame, sortOption]);
+  }, [debouncedSearchTerm, debouncedGpu, selectedGame, selectedGpu, sortOption]);
 
   // Trigger fetch when dependencies change
   useEffect(() => {
@@ -234,6 +286,18 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
     setSearchTerm('');
     setSelectedGame(null);
     setSuggestions([]);
+  };
+
+  const handleGpuSelect = (gpu: GpuSuggestion) => {
+    setGpuFilter(gpu.gpu);
+    setSelectedGpu(gpu);
+    setShowGpuSuggestions(false);
+  };
+
+  const clearGpuSearch = () => {
+    setGpuFilter('');
+    setSelectedGpu(null);
+    setGpuSuggestions([]);
   };
 
   const handleOpenInEditor = (config: GameConfig) => {
@@ -310,16 +374,46 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
               )}
             </div>
 
-            {/* 2. GPU Filter */}
-            <div className="md:col-span-4 relative group">
-              <Cpu className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" size={18} />
-              <input
-                type="text"
-                placeholder="GPU (e.g. Adreno 740)"
-                value={gpuFilter}
-                onChange={(e) => setGpuFilter(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-purple-500/20 transition-all"
-              />
+            {/* 2. GPU Filter with Autocomplete */}
+            <div className="md:col-span-4 relative" ref={gpuWrapperRef}>
+              <div className="relative group">
+                <Cpu className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${isSearchingGpus ? 'text-purple-400' : 'text-slate-500 group-focus-within:text-purple-400'}`} size={18} />
+                <input
+                  type="text"
+                  placeholder="GPU (e.g. Adreno 740)"
+                  value={gpuFilter}
+                  onChange={(e) => {
+                    setGpuFilter(e.target.value);
+                    if (selectedGpu) setSelectedGpu(null);
+                  }}
+                  onFocus={() => {
+                    if (gpuSuggestions.length > 0) setShowGpuSuggestions(true);
+                  }}
+                  className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-purple-500/20 transition-all"
+                />
+                {gpuFilter && (
+                  <button onClick={clearGpuSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* GPU Suggestions Dropdown */}
+              {showGpuSuggestions && gpuSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
+                  <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80">SUGGESTED GPUs</div>
+                  {gpuSuggestions.map((gpu, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleGpuSelect(gpu)}
+                      className="w-full text-left px-4 py-3 hover:bg-purple-900/20 text-slate-200 hover:text-purple-400 transition-colors flex items-center justify-between group"
+                    >
+                      <span>{gpu.gpu}</span>
+                      <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 3. Sort Dropdown */}
@@ -362,7 +456,7 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
               We couldn't find any configs matching your search. Try adjusting filters or searching for a different game.
             </p>
             <button 
-              onClick={() => { clearGameSearch(); setGpuFilter(''); }}
+              onClick={() => { clearGameSearch(); clearGpuSearch(); }}
               className="mt-6 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium"
             >
               Clear All Filters
