@@ -41,6 +41,11 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 }
 ```
 
+**Token Details:**
+- Issued: September 4, 2025 (iat: 1756994861)
+- Expires: October 13, 2042 (exp: 2072570861)
+- Role: `anon` (anonymous)
+
 **Risk Assessment:** ✅ **LOW RISK**
 
 **Justification:**
@@ -48,7 +53,7 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 - The code explicitly states: "Public community database credentials - intentionally not using environment variables as this is a read-only public database provided for community use"
 - This is a standard Supabase anonymous key intended for client-side use
 - The database is designed to be publicly accessible for reading community-submitted game configurations
-- Token expires in 2042 (exp: 2072570861)
+- Token has a long expiration date (until 2042), which is typical for public, read-only Supabase keys
 
 **Recommendation:** ✅ **ACCEPTABLE**
 This is an appropriate use case for hardcoding a public, read-only API key. The key is meant to be public and provides only read access to community data.
@@ -57,13 +62,13 @@ This is an appropriate use case for hardcoding a public, read-only API key. The 
 
 ### 2. External API URLs (`app/config-converter/page.tsx`)
 
-**Location:** `/app/config-converter/page.tsx` (lines 564-567)
+**Location:** `/app/config-converter/page.tsx` (lines 198-202)
 
 **Finding:**
 ```typescript
 `https://api.allorigins.win/raw?url=`
 `https://corsproxy.io/?`
-`https://api.steampowered.com/api/appdetails?appids=${appId}`
+`https://store.steampowered.com/api/appdetails?appids=${appId}`
 ```
 
 **Risk Assessment:** ✅ **NO RISK**
