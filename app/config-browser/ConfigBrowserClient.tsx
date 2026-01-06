@@ -71,14 +71,14 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
       // Limit input length to prevent abuse
       const trimmedSearch = search?.trim().slice(0, 100);
       if (trimmedSearch) {
-        query = query.ilike('game.name', `%${trimmedSearch}%`);
+        query = query.ilike('games.name', `%${trimmedSearch}%`);
       }
 
       // Apply server-side filtering for GPU
       // Limit input length to prevent abuse
       const trimmedGpu = gpu?.trim().slice(0, 100);
       if (trimmedGpu) {
-        query = query.ilike('device.gpu', `%${trimmedGpu}%`);
+        query = query.ilike('devices.gpu', `%${trimmedGpu}%`);
       }
 
       // Limit to SERVER_QUERY_LIMIT after filtering
