@@ -6,15 +6,7 @@ export const metadata = {
   description: 'Browse and download high-performance game configurations shared by the community.',
 };
 
-// Define props type for Next.js 15 compatibility
-type Props = {
-  searchParams: Promise<{ search?: string; gpu?: string }>;
-};
-
-export default async function ConfigSearchPage({ searchParams }: Props) {
-  // Await the params before using them
-  const resolvedParams = await searchParams;
-
+export default function ConfigSearchPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
@@ -24,10 +16,7 @@ export default async function ConfigSearchPage({ searchParams }: Props) {
         </div>
       </div>
     }>
-      <ConfigBrowserClient 
-        initialSearch={resolvedParams.search} 
-        initialGpu={resolvedParams.gpu} 
-      />
+      <ConfigBrowserClient />
     </Suspense>
   );
 }
