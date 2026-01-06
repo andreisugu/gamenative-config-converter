@@ -421,6 +421,33 @@ export default function ConfigBrowserClient() {
     setShowDeviceSuggestions(false);
   };
 
+  const handleSearchAll = () => {
+    if (debouncedSearchTerm.length >= 2) handleGameSearch();
+    if (debouncedGpu.length >= 2) handleGpuSearch();
+    if (debouncedDevice.length >= 2) handleDeviceSearch();
+  };
+
+  const handleGameSearch = () => {
+    if (debouncedSearchTerm.length >= 2) {
+      setSelectedGame({ id: -1, name: debouncedSearchTerm });
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleGpuSearch = () => {
+    if (debouncedGpu.length >= 2) {
+      setSelectedGpu({ gpu: debouncedGpu });
+      setShowGpuSuggestions(false);
+    }
+  };
+
+  const handleDeviceSearch = () => {
+    if (debouncedDevice.length >= 2) {
+      setSelectedDevice({ name: debouncedDevice, model: debouncedDevice });
+      setShowDeviceSuggestions(false);
+    }
+  };
+
   const handleGameKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && debouncedSearchTerm.length >= 2) {
       setSelectedGame({ id: -1, name: debouncedSearchTerm });
@@ -506,7 +533,7 @@ export default function ConfigBrowserClient() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             
             {/* 1. Game Autocomplete Search */}
-            <div className={`md:col-span-4 relative ${showSuggestions ? 'z-50' : 'z-20'}`} ref={wrapperRef}>
+            <div className={`md:col-span-3 relative ${showSuggestions ? 'z-50' : 'z-20'}`} ref={wrapperRef}>
               <div className="relative group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-cyan-400" size={18} />
                 <input
@@ -524,9 +551,14 @@ export default function ConfigBrowserClient() {
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-cyan-500/20 transition-all"
                 />
                 {searchTerm && (
-                  <button onClick={clearGameSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
-                    <X size={14} />
-                  </button>
+                  <>
+                    <button onClick={handleGameSearch} className="absolute right-8 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-cyan-400 transition-colors" title="Search">
+                      <Search size={14} />
+                    </button>
+                    <button onClick={clearGameSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
+                      <X size={14} />
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -567,9 +599,14 @@ export default function ConfigBrowserClient() {
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-purple-500/20 transition-all"
                 />
                 {gpuFilter && (
-                  <button onClick={clearGpuSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
-                    <X size={14} />
-                  </button>
+                  <>
+                    <button onClick={handleGpuSearch} className="absolute right-8 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-purple-400 transition-colors" title="Search">
+                      <Search size={14} />
+                    </button>
+                    <button onClick={clearGpuSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
+                      <X size={14} />
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -610,9 +647,14 @@ export default function ConfigBrowserClient() {
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-green-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-green-500/20 transition-all"
                 />
                 {deviceFilter && (
-                  <button onClick={clearDeviceSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
-                    <X size={14} />
-                  </button>
+                  <>
+                    <button onClick={handleDeviceSearch} className="absolute right-8 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-green-400 transition-colors" title="Search">
+                      <Search size={14} />
+                    </button>
+                    <button onClick={clearDeviceSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors">
+                      <X size={14} />
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -655,6 +697,17 @@ export default function ConfigBrowserClient() {
                 </select>
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
               </div>
+            </div>
+
+            {/* 5. Search Button */}
+            <div className="md:col-span-1 relative">
+              <button
+                onClick={handleSearchAll}
+                className="w-full flex items-center justify-center py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/20 hover:shadow-cyan-500/20 active:scale-[0.98]"
+                title="Search"
+              >
+                <Search size={18} />
+              </button>
             </div>
 
           </div>
