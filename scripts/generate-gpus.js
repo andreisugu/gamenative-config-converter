@@ -5,8 +5,21 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 async function generateGpus() {
   try {
-    // Fetch distinct GPUs from devices
-    const { data: devices } = await supabase.from('devices').select('id, model, gpu');
+    // GPUs from generated file or fallback to Supabase
+    let gpus = [];
+    try {
+      const gpuFileResponse = await fetch('./public/gpus.json');
+      if (gpuFileResponse.ok) {
+        gpus = await gpuFileResponse.json();
+        console.log('Using GPUs from public/gpus.json file');
+      } else {
+        throw new Error('public/gpus.json not found');
+      }
+    } catch {
+      console.log('Falling back to Supabase for GPUs');
+      const { data: devices } = await supabase.from('devices').select('gpu');
+      gpus = [...new Set((devices || []).map(d => d.gpu).filter(Boolean))];
+    }
 
     // Read existing filters
     let existingData = { games: [], gpus: [], devices: [], updatedAt: new Date().toISOString() };
@@ -17,7 +30,7 @@ async function generateGpus() {
     // Update only GPUs
     const filterData = {
       ...existingData,
-      gpus: [...new Set((devices || []).map(d => d.gpu).filter(Boolean))],
+      gpus: gpus,
       updatedAt: new Date().toISOString()
     };
 
