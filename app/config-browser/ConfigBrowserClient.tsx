@@ -35,7 +35,7 @@ interface SupabaseGameRun {
   notes: string | null;
   configs: any;
   created_at: string;
-  app_version: string | null;
+  app_version: { semver: string } | null;
   tags: string | null;
   game: { id: number; name: string } | null;
   device: { id: number; model: string; gpu: string; android_ver: string } | null;
@@ -65,7 +65,7 @@ interface ConfigBrowserClientProps {
 const ITEMS_PER_PAGE = 15;
 const DEBOUNCE_MS = 300;
 const SUGGESTION_LIMIT = 6;
-const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,app_version,tags,game:games!inner(id,name),device:devices!inner(id,model,gpu,android_ver)';
+const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,app_version:app_versions(semver),tags,game:games!inner(id,name),device:devices!inner(id,model,gpu,android_ver)';
 
 // --- Helper Hook: useDebounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -349,7 +349,7 @@ export default function ConfigBrowserClient() {
         notes: item.notes,
         configs: item.configs,
         created_at: item.created_at,
-        app_version: item.app_version,
+        app_version: item.app_version?.semver || null,
         tags: item.tags,
         game: item.game || null,
         device: item.device || null
