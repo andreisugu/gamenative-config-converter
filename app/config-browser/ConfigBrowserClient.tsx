@@ -125,7 +125,8 @@ export default function ConfigBrowserClient({ initialSearch, initialGpu }: Confi
   // Fetch configs on mount with initial parameters
   useEffect(() => {
     fetchConfigs(initialSearch, initialGpu);
-  }, []); // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount - initialSearch and initialGpu are from props and don't change
 
   // Update URL and fetch configs when search changes (with debounce)
   useEffect(() => {
