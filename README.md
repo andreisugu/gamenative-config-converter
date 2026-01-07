@@ -59,13 +59,12 @@ Browse and search through community-submitted game configurations with **intelli
 * **Import/Export:** Load existing JSON configs, make changes, and export updated versions.
 * **Cross-Tool Integration:** Seamlessly switch between Converter and Editor as needed.
 
-### Config Browser ⭐ **ENHANCED**
-* **Smart Local Caching:** Pre-generated filter snapshots reduce database load by 95% while providing instant autocomplete suggestions.
-* **Respectful Database Usage:** Intelligent query optimization and minimal API calls protect community infrastructure.
-* **Enhanced Search:** Filter configurations by game name, GPU model, or device with fuzzy matching and autocomplete.
+### Config Browser
+* **Local Filter Snapshots:** Pre-generated JSON files provide instant autocomplete suggestions for games, GPUs, and devices without hitting the database.
+* **Smart Autocomplete:** Client-side fuzzy matching with debounced search for responsive filter suggestions.
+* **Efficient Queries:** Separate count and data queries with proper joins and filtering to minimize database load.
 * **Rich Preview:** View configuration details including rating, FPS, device specs, user notes, and app version.
 * **Seamless Integration:** Load configurations directly into the Config Editor or download as JSON files.
-* **Automated Updates:** GitHub Actions automatically refresh filter data to keep suggestions current.
 
 ---
 
@@ -134,12 +133,12 @@ The editor provides a structured interface for modifying configuration JSON:
 
 ### Config Browser Architecture
 
-The browser intelligently balances performance with respectful database usage:
-1. **Local Filter Snapshots:** Pre-generated JSON files containing 50,000+ games, GPUs, and devices for instant autocomplete.
-2. **Minimal Database Queries:** Only fetches actual configuration data when needed, reducing server load.
-3. **Smart Caching Strategy:** GitHub Actions automatically update filter snapshots without impacting live database.
-4. **Optimized Search:** Client-side fuzzy matching with enhanced word-boundary detection for accurate results.
-5. **Efficient Pagination:** Intelligent query batching with separate count operations to minimize database overhead.
+The browser balances performance with database efficiency:
+1. **Local Filter Snapshots:** Pre-generated JSON files containing games, GPUs, and devices for instant autocomplete suggestions.
+2. **Client-Side Filtering:** Fuzzy matching and search suggestions processed locally to reduce database queries.
+3. **Debounced Input:** 250ms debounce on filter inputs to prevent excessive API calls during typing.
+4. **Efficient Queries:** Separate count and data queries with proper Supabase joins and range-based pagination.
+5. **Request Cancellation:** AbortController implementation to cancel outdated requests when filters change.
 6. **Seamless Integration:** Direct Config Editor loading and JSON export with proper metadata structure.
 
 ---
