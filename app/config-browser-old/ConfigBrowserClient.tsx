@@ -448,7 +448,7 @@ export default function ConfigBrowserClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, debouncedGpu, debouncedDevice, selectedGame, selectedGpu, selectedDevice, sortOption]);
 
-  // Fetch without count when only page changes (but not when it's set to 1 by filter changes)
+  // Fetch without count when page changes, but skip when page is 1 (already handled by filter change effect)
   useEffect(() => {
     // Skip if page is 1 (handled by filter change effect)
     if (currentPage === 1) return;

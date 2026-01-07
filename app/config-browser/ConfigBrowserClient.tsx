@@ -611,7 +611,7 @@ export default function ConfigBrowserClient() {
     };
   }, [filterKey, fetchConfigs]);
 
-  // Fetch without count when only page changes
+  // Fetch without count when page changes, but skip when page is 1 (already handled by filter change effect)
   useEffect(() => {
     const abortController = new AbortController();
     
