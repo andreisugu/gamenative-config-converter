@@ -420,9 +420,9 @@ export default function ConfigBrowserClient() {
       }));
 
       setConfigs(transformedData);
-    } catch (error) {
+    } catch (error: any) {
       // Don't log error if request was aborted
-      if (signal?.aborted) {
+      if (signal?.aborted || error?.name === 'AbortError') {
         return;
       }
       console.error('Error fetching configs:', error);
