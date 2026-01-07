@@ -16,9 +16,6 @@ interface GameConfig {
   created_at: string;
   app_version: string | null;
   tags: string | null;
-  containerVariant: string | null;
-  extraData: any;
-  screenSize: string | null;
   session_length_sec: number | null;
   game: {
     id: number;
@@ -41,9 +38,6 @@ interface SupabaseGameRun {
   created_at: string;
   app_version: { semver: string } | null;
   tags: string | null;
-  containerVariant: string | null;
-  extraData: any;
-  screenSize: string | null;
   session_length_sec: number | null;
   game: { id: number; name: string } | null;
   device: { id: number; model: string; gpu: string; android_ver: string } | null;
@@ -81,7 +75,7 @@ interface ConfigBrowserClientProps {
 const ITEMS_PER_PAGE = 15;
 const SUGGESTION_DEBOUNCE_MS = 250; // Debounce for filter suggestions dropdown
 const SUGGESTION_LIMIT = 15;
-const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,app_version:app_versions(semver),tags,containerVariant,extraData,screenSize,session_length_sec,game:games!inner(id,name),device:devices!inner(id,model,gpu,android_ver)';
+const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,app_version:app_versions(semver),tags,session_length_sec,game:games!inner(id,name),device:devices!inner(id,model,gpu,android_ver)';
 
 // --- Helper Hook: useDebounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -429,9 +423,6 @@ export default function ConfigBrowserClient() {
         created_at: item.created_at,
         app_version: item.app_version?.semver || null,
         tags: item.tags,
-        containerVariant: item.containerVariant,
-        extraData: item.extraData,
-        screenSize: item.screenSize,
         session_length_sec: item.session_length_sec,
         game: item.game || null,
         device: item.device || null
@@ -966,19 +957,19 @@ export default function ConfigBrowserClient() {
                           <span className="ml-6">App Ver: {config.app_version}</span>
                         </div>
                       )}
-                      {config.containerVariant && (
+                      {config.configs?.containerVariant && (
                         <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <span className="ml-6">Container: {config.containerVariant}</span>
+                          <span className="ml-6">Container: {config.configs.containerVariant}</span>
                         </div>
                       )}
-                      {config.extraData?.graphicsDriver && (
+                      {config.configs?.extraData?.graphicsDriver && (
                         <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <span className="ml-6">Driver: {config.extraData.graphicsDriver}</span>
+                          <span className="ml-6">Driver: {config.configs.extraData.graphicsDriver}</span>
                         </div>
                       )}
-                      {config.screenSize && (
+                      {config.configs?.screenSize && (
                         <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <span className="ml-6">Screen: {config.screenSize}</span>
+                          <span className="ml-6">Screen: {config.configs.screenSize}</span>
                         </div>
                       )}
                       {config.tags && (
