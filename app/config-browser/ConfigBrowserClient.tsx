@@ -16,7 +16,6 @@ interface GameConfig {
   app_version: string | null;
   tags: string | null;
   game: {
-    id: number;
     name: string;
   } | null;
   device: {
@@ -71,7 +70,7 @@ interface ConfigBrowserClientProps {
 const ITEMS_PER_PAGE = 15;
 const DEBOUNCE_MS = 300;
 const SUGGESTION_LIMIT = 12;
-const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,created_at,app_version:app_versions(semver),tags,game:games(id,name),device:devices(id,model,gpu,android_ver)';
+const GAME_RUNS_QUERY = 'id,device_id,rating,avg_fps,tags,notes,configs,created_at,app_version_id,app_version:app_versions(semver),game:games(name),device:devices(id,model,gpu,android_ver)';
 const COUNT_QUERY = 'id';
 const CONFIG_QUERY = 'configs';
 
@@ -444,7 +443,7 @@ export default function ConfigBrowserClient() {
         // Count query
         let countQuery = supabase
           .from('game_runs')
-          .select('id,game:games(id,name),device:devices(id,gpu,model)', { count: 'exact', head: true });
+          .select('id,game:games(name),device:devices(id,gpu,model)', { count: 'exact', head: true });
 
         // Apply same filters to count query
         if (selectedGame) {
