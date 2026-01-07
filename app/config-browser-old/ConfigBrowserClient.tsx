@@ -555,7 +555,7 @@ export default function ConfigBrowserClient() {
 
               {/* Suggestions Dropdown */}
               {showSuggestions && gameSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100] max-h-64 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[9999] max-h-64 overflow-y-auto">
                   <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80 sticky top-0">SUGGESTED GAMES</div>
                   {gameSuggestions.map((game) => (
                     <button
@@ -597,7 +597,7 @@ export default function ConfigBrowserClient() {
 
               {/* GPU Suggestions Dropdown */}
               {showGpuSuggestions && gpuSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100] max-h-64 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[9999] max-h-64 overflow-y-auto">
                   <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80 sticky top-0">SUGGESTED GPUs</div>
                   {gpuSuggestions.map((gpu, index) => (
                     <button
@@ -639,7 +639,7 @@ export default function ConfigBrowserClient() {
 
               {/* Device Suggestions Dropdown */}
               {showDeviceSuggestions && deviceSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100] max-h-64 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[9999] max-h-64 overflow-y-auto">
                   <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80 sticky top-0">SUGGESTED DEVICES</div>
                   {deviceSuggestions.map((device, index) => (
                     <button
