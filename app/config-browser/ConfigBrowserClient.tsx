@@ -566,7 +566,7 @@ export default function ConfigBrowserClient() {
       if (result.count !== null) setTotalCount(result.count);
     } catch (error: any) {
       // Don't log error if request was aborted
-      if (signal?.aborted || error?.message === 'Request aborted') {
+      if (signal?.aborted || error?.name === 'AbortError') {
         return;
       }
       console.error('Error fetching configs:', error);
@@ -595,16 +595,16 @@ export default function ConfigBrowserClient() {
   );
 
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const hasFilters = selectedGame || selectedGpu || selectedDevice;
     if (!hasFilters) {
       setConfigs([]);
       setTotalCount(0);
-      return;
+    } else {
+      setCurrentPage(1);
+      fetchConfigs(true, 1, abortController.signal);
     }
-    
-    const abortController = new AbortController();
-    setCurrentPage(1);
-    fetchConfigs(true, 1, abortController.signal);
     
     return () => {
       abortController.abort();
@@ -613,11 +613,12 @@ export default function ConfigBrowserClient() {
 
   // Fetch without count when only page changes
   useEffect(() => {
-    const hasFilters = selectedGame || selectedGpu || selectedDevice;
-    if (!hasFilters || currentPage === 1) return;
-    
     const abortController = new AbortController();
-    fetchConfigs(false, currentPage, abortController.signal);
+    
+    const hasFilters = selectedGame || selectedGpu || selectedDevice;
+    if (hasFilters && currentPage !== 1) {
+      fetchConfigs(false, currentPage, abortController.signal);
+    }
     
     return () => {
       abortController.abort();
