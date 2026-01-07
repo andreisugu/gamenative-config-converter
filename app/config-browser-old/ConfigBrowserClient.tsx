@@ -51,7 +51,15 @@ interface GpuSuggestion {
 }
 
 interface DeviceSuggestion {
+  name: string;
   model: string;
+}
+
+interface FilterSnapshot {
+  games: GameSuggestion[];
+  gpus: string[];
+  devices: DeviceSuggestion[];
+  updatedAt: string;
 }
 
 type SortOption = 'newest' | 'oldest' | 'rating_desc' | 'rating_asc' | 'fps_desc' | 'fps_asc';
@@ -96,22 +104,21 @@ export default function ConfigBrowserClient() {
   const [selectedDevice, setSelectedDevice] = useState<DeviceSuggestion | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>('newest');
   
+  // Static Filter Snapshot
+  const [snapshot, setSnapshot] = useState<FilterSnapshot>({ games: [], gpus: [], devices: [], updatedAt: '' });
+  const [filtersLoading, setFiltersLoading] = useState(true);
+  const [filtersError, setFiltersError] = useState<string | null>(null);
+  
   // Autocomplete State
-  const [suggestions, setSuggestions] = useState<GameSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSearchingGames, setIsSearchingGames] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   
   // GPU Autocomplete State
-  const [gpuSuggestions, setGpuSuggestions] = useState<GpuSuggestion[]>([]);
   const [showGpuSuggestions, setShowGpuSuggestions] = useState(false);
-  const [isSearchingGpus, setIsSearchingGpus] = useState(false);
   const gpuWrapperRef = useRef<HTMLDivElement>(null);
   
   // Device Autocomplete State
-  const [deviceSuggestions, setDeviceSuggestions] = useState<DeviceSuggestion[]>([]);
   const [showDeviceSuggestions, setShowDeviceSuggestions] = useState(false);
-  const [isSearchingDevices, setIsSearchingDevices] = useState(false);
   const deviceWrapperRef = useRef<HTMLDivElement>(null);
   
   // Pagination
@@ -121,30 +128,113 @@ export default function ConfigBrowserClient() {
   const debouncedGpu = useDebounce(gpuFilter, DEBOUNCE_MS);
   const debouncedDevice = useDebounce(deviceFilter, DEBOUNCE_MS);
 
-  // --- 1. Fetch Game Suggestions (Autocomplete) ---
+  // --- Load Static Filter Data ---
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (!debouncedSearchTerm || selectedGame) {
-        setSuggestions([]);
-        return;
-      }
+    setFiltersLoading(true);
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    fetch(`${basePath}/filters.json`)
+      .then(res => {
+        if (!res.ok) throw new Error(`Failed to load filters: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setSnapshot(data);
+        setFiltersError(null);
+      })
+      .catch(error => {
+        console.error('Error loading filters:', error);
+        setFiltersError('Failed to load search filters');
+        setSnapshot({ games: [], gpus: [], devices: [], updatedAt: '' });
+      })
+      .finally(() => setFiltersLoading(false));
+  }, []);
 
-      setIsSearchingGames(true);
-      const { data, error } = await supabase
-        .from('games')
-        .select('id, name')
-        .ilike('name', `%${debouncedSearchTerm}%`)
-        .limit(SUGGESTION_LIMIT);
+  // --- Local Search with useMemo ---
+  const gameSuggestions = useMemo(() => {
+    if (debouncedSearchTerm.length < 2 || selectedGame) return [];
+    const searchTerm = debouncedSearchTerm.toLowerCase();
+    return snapshot.games
+      .filter(g => {
+        const name = g.name.toLowerCase();
+        const cleanName = name.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+        const cleanSearch = searchTerm.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+        
+        const searchWords = cleanSearch.split(' ');
+        const nameWords = cleanName.split(' ');
+        const allWordsMatch = searchWords.every(searchWord => 
+          nameWords.some(nameWord => nameWord.includes(searchWord))
+        );
+        
+        return cleanName.includes(cleanSearch) || name.includes(searchTerm) || allWordsMatch;
+      })
+      .slice(0, SUGGESTION_LIMIT);
+  }, [debouncedSearchTerm, selectedGame, snapshot.games]);
 
-      if (!error && data) {
-        setSuggestions(data);
-        setShowSuggestions(true);
-      }
-      setIsSearchingGames(false);
-    };
+  const gpuSuggestions = useMemo(() => {
+    if (debouncedGpu.length < 2 || selectedGpu) return [];
+    const searchTerm = debouncedGpu.toLowerCase();
+    return snapshot.gpus
+      .filter(gpu => {
+        const name = gpu.toLowerCase();
+        const cleanName = name.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanSearch = searchTerm.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        
+        const searchWords = cleanSearch.split(' ');
+        const nameWords = cleanName.split(' ');
+        const allWordsMatch = searchWords.every(searchWord => 
+          nameWords.some(nameWord => nameWord.includes(searchWord))
+        );
+        
+        return cleanName.includes(cleanSearch) || name.includes(searchTerm) || allWordsMatch;
+      })
+      .slice(0, SUGGESTION_LIMIT)
+      .map(gpu => ({ gpu }));
+  }, [debouncedGpu, selectedGpu, snapshot.gpus]);
 
-    fetchSuggestions();
-  }, [debouncedSearchTerm, selectedGame]);
+  const deviceSuggestions = useMemo(() => {
+    if (debouncedDevice.length < 2 || selectedDevice) return [];
+    const searchTerm = debouncedDevice.toLowerCase();
+    return snapshot.devices
+      .filter(device => {
+        const deviceName = device.name.toLowerCase();
+        const deviceModel = device.model.toLowerCase();
+        
+        const cleanDeviceName = deviceName.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanDeviceModel = deviceModel.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanSearch = searchTerm.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        
+        const searchWords = cleanSearch.split(' ');
+        const allWordsMatchName = searchWords.every(searchWord => {
+          const regex = new RegExp(`\\b${searchWord}`, 'i');
+          return regex.test(cleanDeviceName);
+        });
+        const allWordsMatchModel = searchWords.every(searchWord => {
+          const regex = new RegExp(`\\b${searchWord}`, 'i');
+          return regex.test(cleanDeviceModel);
+        });
+        
+        return deviceName.includes(searchTerm) ||
+               deviceModel.includes(searchTerm) ||
+               cleanDeviceName.includes(cleanSearch) ||
+               cleanDeviceModel.includes(cleanSearch) ||
+               allWordsMatchName ||
+               allWordsMatchModel;
+      })
+      .slice(0, SUGGESTION_LIMIT);
+  }, [debouncedDevice, selectedDevice, snapshot.devices]);
+
+  // --- Show/Hide Suggestions Based on Results ---
+  useEffect(() => {
+    setShowSuggestions(gameSuggestions.length > 0 && debouncedSearchTerm.length >= 2 && !selectedGame);
+  }, [gameSuggestions.length, debouncedSearchTerm.length, selectedGame]);
+
+  useEffect(() => {
+    setShowGpuSuggestions(gpuSuggestions.length > 0 && debouncedGpu.length >= 2 && !selectedGpu);
+  }, [gpuSuggestions.length, debouncedGpu.length, selectedGpu]);
+
+  useEffect(() => {
+    setShowDeviceSuggestions(deviceSuggestions.length > 0 && debouncedDevice.length >= 2 && !selectedDevice);
+  }, [deviceSuggestions.length, debouncedDevice.length, selectedDevice]);
 
   // Handle clicking outside autocomplete
   useEffect(() => {
@@ -162,66 +252,6 @@ export default function ConfigBrowserClient() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // --- Fetch GPU Suggestions (Autocomplete) ---
-  useEffect(() => {
-    const fetchGpuSuggestions = async () => {
-      if (!debouncedGpu || selectedGpu) {
-        setGpuSuggestions([]);
-        return;
-      }
-
-      setIsSearchingGpus(true);
-      const { data, error } = await supabase
-        .from('devices')
-        .select('gpu')
-        .ilike('gpu', `%${debouncedGpu}%`)
-        .limit(10);
-
-      if (!error && data) {
-        // Remove duplicates and limit
-        const uniqueGpus = Array.from(new Set(data.map(d => d.gpu)))
-          .filter(gpu => gpu) // Filter out null/undefined values
-          .slice(0, SUGGESTION_LIMIT)
-          .map(gpu => ({ gpu }));
-        setGpuSuggestions(uniqueGpus);
-        setShowGpuSuggestions(true);
-      }
-      setIsSearchingGpus(false);
-    };
-
-    fetchGpuSuggestions();
-  }, [debouncedGpu, selectedGpu]);
-
-  // --- Fetch Device Suggestions (Autocomplete) ---
-  useEffect(() => {
-    const fetchDeviceSuggestions = async () => {
-      if (!debouncedDevice || selectedDevice) {
-        setDeviceSuggestions([]);
-        return;
-      }
-
-      setIsSearchingDevices(true);
-      const { data, error } = await supabase
-        .from('devices')
-        .select('model')
-        .ilike('model', `%${debouncedDevice}%`)
-        .limit(10);
-
-      if (!error && data) {
-        // Remove duplicates and limit
-        const uniqueDevices = Array.from(new Set(data.map(d => d.model)))
-          .filter(model => model) // Filter out null/undefined values
-          .slice(0, SUGGESTION_LIMIT)
-          .map(model => ({ model }));
-        setDeviceSuggestions(uniqueDevices);
-        setShowDeviceSuggestions(true);
-      }
-      setIsSearchingDevices(false);
-    };
-
-    fetchDeviceSuggestions();
-  }, [debouncedDevice, selectedDevice]);
 
   // --- 2. Main Data Fetching ---
   const fetchConfigs = useCallback(async (needsCount: boolean, page: number) => {
@@ -417,7 +447,6 @@ export default function ConfigBrowserClient() {
   const clearGameSearch = () => {
     setSearchTerm('');
     setSelectedGame(null);
-    setSuggestions([]);
   };
 
   const handleGpuSelect = (gpu: GpuSuggestion) => {
@@ -429,11 +458,10 @@ export default function ConfigBrowserClient() {
   const clearGpuSearch = () => {
     setGpuFilter('');
     setSelectedGpu(null);
-    setGpuSuggestions([]);
   };
 
   const handleDeviceSelect = (device: DeviceSuggestion) => {
-    setDeviceFilter(device.model);
+    setDeviceFilter(device.name);
     setSelectedDevice(device);
     setShowDeviceSuggestions(false);
   };
@@ -441,7 +469,6 @@ export default function ConfigBrowserClient() {
   const clearDeviceSearch = () => {
     setDeviceFilter('');
     setSelectedDevice(null);
-    setDeviceSuggestions([]);
   };
 
   const handleOpenInEditor = (config: GameConfig) => {
@@ -505,7 +532,7 @@ export default function ConfigBrowserClient() {
             {/* 1. Game Autocomplete Search */}
             <div className="md:col-span-4 relative" ref={wrapperRef}>
               <div className="relative group">
-                <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${isSearchingGames ? 'text-cyan-400' : 'text-slate-500 group-focus-within:text-cyan-400'}`} size={18} />
+                <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-cyan-400`} size={18} />
                 <input
                   type="text"
                   placeholder="Search game name..."
@@ -515,7 +542,7 @@ export default function ConfigBrowserClient() {
                     if (selectedGame) setSelectedGame(null); // Clear ID selection if typing new text
                   }}
                   onFocus={() => {
-                    if (suggestions.length > 0) setShowSuggestions(true);
+                    if (gameSuggestions.length > 0) setShowSuggestions(true);
                   }}
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-cyan-500/20 transition-all"
                 />
@@ -527,10 +554,10 @@ export default function ConfigBrowserClient() {
               </div>
 
               {/* Suggestions Dropdown */}
-              {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100]">
-                  <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80">SUGGESTED GAMES</div>
-                  {suggestions.map((game) => (
+              {showSuggestions && gameSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100] max-h-64 overflow-y-auto">
+                  <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80 sticky top-0">SUGGESTED GAMES</div>
+                  {gameSuggestions.map((game) => (
                     <button
                       key={game.id}
                       onClick={() => handleGameSelect(game)}
@@ -547,7 +574,7 @@ export default function ConfigBrowserClient() {
             {/* 2. GPU Filter with Autocomplete */}
             <div className="md:col-span-3 relative" ref={gpuWrapperRef}>
               <div className="relative group">
-                <Cpu className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${isSearchingGpus ? 'text-purple-400' : 'text-slate-500 group-focus-within:text-purple-400'}`} size={18} />
+                <Cpu className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-purple-400`} size={18} />
                 <input
                   type="text"
                   placeholder="GPU (e.g. Adreno 740)"
@@ -570,8 +597,8 @@ export default function ConfigBrowserClient() {
 
               {/* GPU Suggestions Dropdown */}
               {showGpuSuggestions && gpuSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100]">
-                  <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80">SUGGESTED GPUs</div>
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100] max-h-64 overflow-y-auto">
+                  <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80 sticky top-0">SUGGESTED GPUs</div>
                   {gpuSuggestions.map((gpu, index) => (
                     <button
                       key={index}
@@ -589,7 +616,7 @@ export default function ConfigBrowserClient() {
             {/* 3. Device Filter with Autocomplete */}
             <div className="md:col-span-3 relative" ref={deviceWrapperRef}>
               <div className="relative group">
-                <Smartphone className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${isSearchingDevices ? 'text-green-400' : 'text-slate-500 group-focus-within:text-green-400'}`} size={18} />
+                <Smartphone className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-green-400`} size={18} />
                 <input
                   type="text"
                   placeholder="Device (e.g. Pixel, Galaxy)"
@@ -612,15 +639,18 @@ export default function ConfigBrowserClient() {
 
               {/* Device Suggestions Dropdown */}
               {showDeviceSuggestions && deviceSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100]">
-                  <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80">SUGGESTED DEVICES</div>
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100] max-h-64 overflow-y-auto">
+                  <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80 sticky top-0">SUGGESTED DEVICES</div>
                   {deviceSuggestions.map((device, index) => (
                     <button
                       key={index}
                       onClick={() => handleDeviceSelect(device)}
                       className="w-full text-left px-4 py-3 hover:bg-green-900/20 text-slate-200 hover:text-green-400 transition-colors flex items-center justify-between group"
                     >
-                      <span>{device.model}</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{device.name.replace(/[<>"'&]/g, '')}</span>
+                        <span className="text-xs text-slate-500">{device.model.replace(/[<>"'&]/g, '')}</span>
+                      </div>
                       <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                   ))}
@@ -652,13 +682,45 @@ export default function ConfigBrowserClient() {
         </div>
 
         {/* --- Content Area --- */}
-        {isLoading ? (
+        {filtersLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="relative w-16 h-16">
+              <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+              <div className="absolute top-0 left-0 w-full h-full border-4 border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+            </div>
+            <p className="mt-4 text-slate-400 animate-pulse">Loading search filters...</p>
+          </div>
+        ) : filtersError ? (
+          <div className="text-center py-20 bg-red-900/20 rounded-2xl border border-red-700/50">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-800 mb-4">
+              <X className="text-red-400" size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Error Loading Filters</h3>
+            <p className="text-red-400 max-w-md mx-auto mb-4">{filtersError}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors font-medium"
+            >
+              Retry
+            </button>
+          </div>
+        ) : isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="relative w-16 h-16">
               <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
               <div className="absolute top-0 left-0 w-full h-full border-4 border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
             </div>
             <p className="mt-4 text-slate-400 animate-pulse">Fetching configurations...</p>
+          </div>
+        ) : configs.length === 0 && (!debouncedSearchTerm && !debouncedGpu && !debouncedDevice && !selectedGame && !selectedGpu && !selectedDevice) ? (
+          <div className="text-center py-20 bg-slate-800/30 rounded-2xl border border-slate-700/50 border-dashed">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4">
+              <Search className="text-slate-500" size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Start searching</h3>
+            <p className="text-slate-400 max-w-md mx-auto">
+              Enter a game name, GPU, or device to discover community configurations.
+            </p>
           </div>
         ) : configs.length === 0 ? (
           <div className="text-center py-20 bg-slate-800/30 rounded-2xl border border-slate-700/50 border-dashed">
@@ -679,14 +741,16 @@ export default function ConfigBrowserClient() {
         ) : (
           <>
             {/* Results Count */}
-            <div className="flex items-center justify-between mb-4 text-sm px-1">
-              <span className="text-slate-400">
-                Found <strong className="text-white">{totalCount}</strong> configurations
-              </span>
-              <span className="text-slate-500">
-                Page {currentPage} of {totalPages}
-              </span>
-            </div>
+            {(debouncedSearchTerm || debouncedGpu || debouncedDevice || selectedGame || selectedGpu || selectedDevice) && (
+              <div className="flex items-center justify-between mb-4 text-sm px-1">
+                <span className="text-slate-400">
+                  Found <strong className="text-white">{totalCount}</strong> configurations
+                </span>
+                <span className="text-slate-500">
+                  Page {currentPage} of {totalPages}
+                </span>
+              </div>
+            )}
 
             {/* Grid Layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
