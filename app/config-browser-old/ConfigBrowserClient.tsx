@@ -262,24 +262,26 @@ export default function ConfigBrowserClient() {
         .from('game_runs')
         .select(GAME_RUNS_QUERY);
 
-      // Apply filters
-      // Filter by Game (ID if selected, otherwise fuzzy text search)
+      // --- Filter by Game ---
       if (selectedGame) {
-        dataQuery = dataQuery.eq('game.id', selectedGame.id);
+        // Use ID for games, but cast to ensure it's a number
+        dataQuery = dataQuery.eq('game.id', Number(selectedGame.id));
       } else if (debouncedSearchTerm) {
         dataQuery = dataQuery.ilike('game.name', `%${debouncedSearchTerm}%`);
       }
 
-      // Filter by GPU (exact match if selected, otherwise fuzzy text search)
+      // --- Filter by GPU ---
       if (selectedGpu) {
-        dataQuery = dataQuery.eq('device.gpu', selectedGpu.gpu);
+        // CHANGE: Use ilike instead of eq to handle casing mismatches (e.g., "Adreno" vs "adreno")
+        dataQuery = dataQuery.ilike('device.gpu', selectedGpu.gpu); 
       } else if (debouncedGpu) {
         dataQuery = dataQuery.ilike('device.gpu', `%${debouncedGpu}%`);
       }
 
-      // Filter by Device (exact match if selected, otherwise fuzzy text search)
+      // --- Filter by Device ---
       if (selectedDevice) {
-        dataQuery = dataQuery.eq('device.model', selectedDevice.model);
+        // CHANGE: Use ilike instead of eq to handle casing/whitespace mismatches
+        dataQuery = dataQuery.ilike('device.model', selectedDevice.model);
       } else if (debouncedDevice) {
         dataQuery = dataQuery.ilike('device.model', `%${debouncedDevice}%`);
       }
@@ -343,21 +345,21 @@ export default function ConfigBrowserClient() {
           .from('game_runs')
           .select('id, game:games!inner(id, name), device:devices!inner(id, gpu, model)', { count: 'exact', head: true });
 
-        // Apply same filters to count query
+        // Apply same filters to count query with the new .ilike logic
         if (selectedGame) {
-          countQuery = countQuery.eq('game.id', selectedGame.id);
+          countQuery = countQuery.eq('game.id', Number(selectedGame.id));
         } else if (debouncedSearchTerm) {
           countQuery = countQuery.ilike('game.name', `%${debouncedSearchTerm}%`);
         }
 
         if (selectedGpu) {
-          countQuery = countQuery.eq('device.gpu', selectedGpu.gpu);
+          countQuery = countQuery.ilike('device.gpu', selectedGpu.gpu); // Changed to ilike
         } else if (debouncedGpu) {
           countQuery = countQuery.ilike('device.gpu', `%${debouncedGpu}%`);
         }
 
         if (selectedDevice) {
-          countQuery = countQuery.eq('device.model', selectedDevice.model);
+          countQuery = countQuery.ilike('device.model', selectedDevice.model); // Changed to ilike
         } else if (debouncedDevice) {
           countQuery = countQuery.ilike('device.model', `%${debouncedDevice}%`);
         }
