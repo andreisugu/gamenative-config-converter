@@ -211,7 +211,7 @@ export default function AdminPage() {
         from += batchSize;
       }
 
-      const uniqueGames = [...new Set(allData.map(d => d.game.name))].sort().map(name => ({ name }));
+      const uniqueGames = [...new Set(allData.map((d: any) => d.game.name))].sort().map(name => ({ name }));
       
       const jsonString = JSON.stringify(uniqueGames, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
@@ -252,7 +252,7 @@ export default function AdminPage() {
         from += batchSize;
       }
 
-      const uniqueDevices = [...new Set(allData.map(d => d.device.model))].sort().map(name => ({ name, model: name }));
+      const uniqueDevices = [...new Set(allData.map((d: any) => d.device.model))].sort().map(name => ({ name, model: name }));
       
       const jsonString = JSON.stringify(uniqueDevices, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
