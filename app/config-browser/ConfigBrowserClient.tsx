@@ -289,9 +289,15 @@ export default function ConfigBrowserClient() {
   const fetchConfigs = useCallback(async (needsCount: boolean, page: number, signal?: AbortSignal) => {
     setIsLoading(true);
     try {
-      // Dynamic Select String - use !inner only when NOT showing incomplete
-      const joinType = showIncomplete ? '' : '!inner';
-      const dynamicQuery = `id,rating,avg_fps,notes,configs,created_at,app_version:app_versions(semver),tags,game:games${joinType}(id,name),device:devices${joinType}(id,model,gpu,android_ver)`;
+      // Determine which fields need !inner joins based on active filters
+      const hasGameFilter = committedSelectedGame || committedSearchTerm;
+      const hasDeviceFilter = committedSelectedGpu || committedSelectedDevice || committedGpuFilter || committedDeviceFilter;
+      
+      // Use !inner only for fields that are being filtered OR when not showing incomplete
+      const gameJoinType = (!showIncomplete || hasGameFilter) ? '!inner' : '';
+      const deviceJoinType = (!showIncomplete || hasDeviceFilter) ? '!inner' : '';
+      
+      const dynamicQuery = `id,rating,avg_fps,notes,configs,created_at,app_version:app_versions(semver),tags,game:games${gameJoinType}(id,name),device:devices${deviceJoinType}(id,model,gpu,android_ver)`;
 
       // Build base query for data fetch
       let dataQuery = supabase
@@ -305,8 +311,6 @@ export default function ConfigBrowserClient() {
 
       // --- Filter by Game ---
       if (committedSelectedGame) {
-        // CHANGED: Filter by NAME instead of ID.
-        // This fixes the issue where filters.json has Steam IDs but DB has internal IDs.
         dataQuery = dataQuery.eq('game.name', committedSelectedGame.name);
       } else if (committedSearchTerm) {
         dataQuery = dataQuery.ilike('game.name', `%${committedSearchTerm}%`);
@@ -314,7 +318,6 @@ export default function ConfigBrowserClient() {
 
       // --- Filter by GPU ---
       if (committedSelectedGpu) {
-        // CHANGE: Use ilike instead of eq to handle casing mismatches (e.g., "Adreno" vs "adreno")
         dataQuery = dataQuery.ilike('device.gpu', committedSelectedGpu.gpu); 
       } else if (committedGpuFilter) {
         dataQuery = dataQuery.ilike('device.gpu', `%${committedGpuFilter}%`);
@@ -322,7 +325,6 @@ export default function ConfigBrowserClient() {
 
       // --- Filter by Device ---
       if (committedSelectedDevice) {
-        // CHANGE: Use ilike instead of eq to handle casing/whitespace mismatches
         dataQuery = dataQuery.ilike('device.model', committedSelectedDevice.model);
       } else if (committedDeviceFilter) {
         dataQuery = dataQuery.ilike('device.model', `%${committedDeviceFilter}%`);
@@ -386,17 +388,22 @@ export default function ConfigBrowserClient() {
       let countResult = null;
       if (needsCount) {
         // Build count query with same joins and filters as data query
-        const joinType = showIncomplete ? '' : '!inner';
+        const hasGameFilter = committedSelectedGame || committedSearchTerm;
+        const hasDeviceFilter = committedSelectedGpu || committedSelectedDevice || committedGpuFilter || committedDeviceFilter;
+        
+        const gameJoinType = (!showIncomplete || hasGameFilter) ? '!inner' : '';
+        const deviceJoinType = (!showIncomplete || hasDeviceFilter) ? '!inner' : '';
+        
         let countQuery = supabase
           .from('game_runs')
-          .select(`id, game:games${joinType}(id, name), device:devices${joinType}(id, gpu, model)`, { count: 'exact', head: true });
+          .select(`id, game:games${gameJoinType}(id, name), device:devices${deviceJoinType}(id, gpu, model)`, { count: 'exact', head: true });
 
         // Apply strict filtering if NOT showing incomplete
         if (!showIncomplete) {
           countQuery = countQuery.not('avg_fps', 'is', null);
         }
 
-        // Apply same filters to count query with the new .ilike logic
+        // Apply same filters to count query
         if (committedSelectedGame) {
           countQuery = countQuery.eq('game.name', committedSelectedGame.name);
         } else if (committedSearchTerm) {
@@ -404,13 +411,13 @@ export default function ConfigBrowserClient() {
         }
 
         if (committedSelectedGpu) {
-          countQuery = countQuery.ilike('device.gpu', committedSelectedGpu.gpu); // Changed to ilike
+          countQuery = countQuery.ilike('device.gpu', committedSelectedGpu.gpu);
         } else if (committedGpuFilter) {
           countQuery = countQuery.ilike('device.gpu', `%${committedGpuFilter}%`);
         }
 
         if (committedSelectedDevice) {
-          countQuery = countQuery.ilike('device.model', committedSelectedDevice.model); // Changed to ilike
+          countQuery = countQuery.ilike('device.model', committedSelectedDevice.model);
         } else if (committedDeviceFilter) {
           countQuery = countQuery.ilike('device.model', `%${committedDeviceFilter}%`);
         }
