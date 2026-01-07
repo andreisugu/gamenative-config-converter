@@ -71,7 +71,7 @@ interface ConfigBrowserClientProps {
 const ITEMS_PER_PAGE = 15;
 const DEBOUNCE_MS = 300;
 const SUGGESTION_LIMIT = 12;
-const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,created_at,app_version:app_versions(semver),tags,game:games!inner(id,name),device:devices!inner(id,model,gpu,android_ver)';
+const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,created_at,app_version,tags,game:games(id,name),device:devices(id,model,gpu,android_ver)';
 const COUNT_QUERY = 'id';
 const CONFIG_QUERY = 'configs';
 
@@ -367,7 +367,7 @@ export default function ConfigBrowserClient() {
     try {
       const result = await cachedFetch(cacheKey, async () => {
         return await withRetry(async () => {
-      // Build base query for data fetch (includes joins for games and devices)
+      // Build base query for data fetch
       let dataQuery = supabase
         .from('game_runs')
         .select(GAME_RUNS_QUERY);
@@ -375,9 +375,9 @@ export default function ConfigBrowserClient() {
       // Apply filters
       if (selectedGame) {
         if (selectedGame.id === -1) {
-          dataQuery = dataQuery.ilike('game.name', `%${selectedGame.name}%`);
+          dataQuery = dataQuery.eq('game.name', selectedGame.name);
         } else {
-          dataQuery = dataQuery.eq('game.id', selectedGame.id);
+          dataQuery = dataQuery.eq('game_id', selectedGame.id);
         }
       }
 
@@ -441,17 +441,17 @@ export default function ConfigBrowserClient() {
       // Fetch count only when filters change, not on every page change
       let countResult = null;
       if (needsCount) {
-        // Count query needs joins to access nested fields
+        // Count query
         let countQuery = supabase
           .from('game_runs')
-          .select('id, game:games!inner(id,name), device:devices!inner(id,gpu,model)', { count: 'exact', head: true });
+          .select('id,game:games(id,name),device:devices(id,gpu,model)', { count: 'exact', head: true });
 
         // Apply same filters to count query
         if (selectedGame) {
           if (selectedGame.id === -1) {
-            countQuery = countQuery.ilike('game.name', `%${selectedGame.name}%`);
+            countQuery = countQuery.eq('game.name', selectedGame.name);
           } else {
-            countQuery = countQuery.eq('game.id', selectedGame.id);
+            countQuery = countQuery.eq('game_id', selectedGame.id);
           }
         }
 
@@ -472,13 +472,13 @@ export default function ConfigBrowserClient() {
       if (dataResult.error) throw dataResult.error;
 
       // Transform Data
-      const transformedData: GameConfig[] = (dataResult.data as unknown as SupabaseGameRun[] || []).map(item => ({
+      const transformedData: GameConfig[] = (dataResult.data || []).map(item => ({
         id: item.id,
         rating: item.rating,
         avg_fps: item.avg_fps,
         notes: item.notes,
         created_at: item.created_at,
-        app_version: item.app_version?.semver || null,
+        app_version: item.app_version,
         tags: item.tags,
         game: item.game || null,
         device: item.device || null

@@ -8,8 +8,8 @@ import { Download, Lock } from 'lucide-react';
 const ENCRYPTED_PASSWORD = 'U2FsdGVkX1+vupppZksvRf5pq5g5XjFRIGVuGiK71T4=';
 const SALT = 'gamenative-admin-2024';
 
-// Simple AES decryption using password as key
-const decrypt = async (encryptedData: string, key: string): Promise<string> => {
+// Password verification using hash comparison
+const verifyPassword = async (encryptedData: string, password: string): Promise<string> => {
   try {
     // Create key from password + salt
     const keyMaterial = await crypto.subtle.importKey(
@@ -41,7 +41,8 @@ const decrypt = async (encryptedData: string, key: string): Promise<string> => {
     
     // Check if this matches our expected password hash
     return hashHex === '94e7947894d6106af6aa8ba1949881eca3b5e19b83bb94590ee79dddf7695069' ? 'macaCac12Chicken' : '';
-  } catch {
+  } catch (error) {
+    console.error('Decryption failed:', error);
     return '';
   }
 };
@@ -54,7 +55,7 @@ export default function AdminPage() {
 
   const handleAuth = async () => {
     try {
-      const decrypted = await decrypt(ENCRYPTED_PASSWORD, password);
+      const decrypted = await verifyPassword(ENCRYPTED_PASSWORD, password);
       if (decrypted === 'macaCac12Chicken') {
         setIsAuthenticated(true);
         setAuthError('');
