@@ -480,8 +480,8 @@ export default function ConfigBrowserClient() {
         created_at: item.created_at,
         app_version: item.app_version,
         tags: item.tags,
-        game: item.game || null,
-        device: item.device || null
+        game: Array.isArray(item.game) ? item.game[0] || null : item.game || null,
+        device: Array.isArray(item.device) ? item.device[0] || null : item.device || null
       }));
 
           return { configs: transformedData, count: countResult?.count || null };
