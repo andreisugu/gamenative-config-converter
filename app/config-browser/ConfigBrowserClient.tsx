@@ -12,10 +12,12 @@ interface GameConfig {
   rating: number;
   avg_fps: number;
   notes: string | null;
+  configs: any;
   created_at: string;
   app_version: string | null;
   tags: string | null;
   game: {
+    id: number;
     name: string;
   } | null;
   device: {
@@ -31,6 +33,7 @@ interface SupabaseGameRun {
   rating: number;
   avg_fps: number;
   notes: string | null;
+  configs: any;
   created_at: string;
   app_version: { semver: string } | null;
   tags: string | null;
@@ -68,109 +71,9 @@ interface ConfigBrowserClientProps {
 // --- Constants ---
 
 const ITEMS_PER_PAGE = 15;
-const DEBOUNCE_MS = 300;
-const SUGGESTION_LIMIT = 12;
-const GAME_RUNS_QUERY = 'id,device_id,rating,avg_fps,tags,notes,configs,created_at,app_version_id,game:games(name),device:devices(id,model,gpu,android_ver)';
-const COUNT_QUERY = '*';
-const CONFIG_QUERY = 'configs';
-
-// --- Request Cache & Deduplication ---
-const requestCache = new Map<string, any>();
-const pendingRequests = new Map<string, Promise<any>>();
-const apiCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const MAX_CACHE_SIZE = 100;
-
-// Cache cleanup function
-const cleanupCache = () => {
-  const now = Date.now();
-  for (const [key, value] of apiCache.entries()) {
-    if (now - value.timestamp > CACHE_TTL) {
-      apiCache.delete(key);
-    }
-  }
-  // LRU cleanup if cache is too large
-  if (apiCache.size > MAX_CACHE_SIZE) {
-    const entries = Array.from(apiCache.entries());
-    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-    for (let i = 0; i < entries.length - MAX_CACHE_SIZE; i++) {
-      apiCache.delete(entries[i][0]);
-    }
-  }
-};
-
-// --- Request Queue for Connection Pool Management ---
-class RequestQueue {
-  private queue: Array<() => Promise<any>> = [];
-  private running = 0;
-  private maxConcurrent = 3;
-
-  async add<T>(fn: () => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.queue.push(async () => {
-        try {
-          this.running++;
-          const result = await fn();
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        } finally {
-          this.running--;
-          this.processQueue();
-        }
-      });
-      this.processQueue();
-    });
-  }
-
-  private processQueue() {
-    if (this.running < this.maxConcurrent && this.queue.length > 0) {
-      const next = this.queue.shift()!;
-      next();
-    }
-  }
-}
-
-const requestQueue = new RequestQueue();
-
-const getCachedOrFetch = async (key: string, fetchFn: () => Promise<any>) => {
-  cleanupCache();
-  const cached = apiCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
-  
-  const data = await requestQueue.add(fetchFn);
-  apiCache.set(key, { data, timestamp: Date.now() });
-  return data;
-};
-
-const cachedFetch = async (key: string, fetchFn: () => Promise<any>) => {
-  if (requestCache.has(key)) return requestCache.get(key);
-  if (pendingRequests.has(key)) return pendingRequests.get(key);
-  
-  const promise = getCachedOrFetch(key, fetchFn);
-  pendingRequests.set(key, promise);
-  
-  try {
-    const result = await promise;
-    requestCache.set(key, result);
-    return result;
-  } finally {
-    pendingRequests.delete(key);
-  }
-};
-
-const withRetry = async (fn: () => Promise<any>, maxRetries = 3) => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-    }
-  }
-};
+const DEBOUNCE_MS = 1000;
+const SUGGESTION_LIMIT = 6;
+const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,configs,created_at,app_version:app_versions(semver),tags,game:games!inner(id,name),device:devices!inner(id,model,gpu,android_ver)';
 
 // --- Helper Hook: useDebounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -229,9 +132,6 @@ export default function ConfigBrowserClient() {
   useEffect(() => {
     const abortController = new AbortController();
     setFiltersLoading(true);
-    // Use basePath for GitHub Pages deployment (set in next.config.ts)
-    // In production, NEXT_PUBLIC_BASE_PATH defaults to '/gamenative-config-tools'
-    // In development, it's empty so files are fetched from root
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
     fetch(`${basePath}/filters.json`, { signal: abortController.signal })
       .then(res => {
@@ -250,7 +150,6 @@ export default function ConfigBrowserClient() {
         }
         console.error('Error loading filters:', error);
         setFiltersError('Failed to load search filters');
-        // Fallback to empty data to allow the app to continue working
         setSnapshot({ games: [], gpus: [], devices: [], updatedAt: '' });
       })
       .finally(() => {
@@ -273,11 +172,9 @@ export default function ConfigBrowserClient() {
     return snapshot.games
       .filter(g => {
         const name = g.name.toLowerCase();
-        // Enhanced fuzzy matching: remove punctuation, parentheses, and normalize spaces
         const cleanName = name.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
         const cleanSearch = searchTerm.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
         
-        // Check if all words in search exist in the game name
         const searchWords = cleanSearch.split(' ');
         const nameWords = cleanName.split(' ');
         const allWordsMatch = searchWords.every(searchWord => 
@@ -295,11 +192,9 @@ export default function ConfigBrowserClient() {
     return snapshot.gpus
       .filter(gpu => {
         const name = gpu.toLowerCase();
-        // Enhanced fuzzy matching: remove punctuation, parentheses, and normalize spaces
         const cleanName = name.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
         const cleanSearch = searchTerm.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
         
-        // Check if all words in search exist in the GPU name
         const searchWords = cleanSearch.split(' ');
         const nameWords = cleanName.split(' ');
         const allWordsMatch = searchWords.every(searchWord => 
@@ -320,12 +215,10 @@ export default function ConfigBrowserClient() {
         const deviceName = device.name.toLowerCase();
         const deviceModel = device.model.toLowerCase();
         
-        // Enhanced fuzzy matching: remove punctuation, parentheses, and normalize spaces
         const cleanDeviceName = deviceName.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
         const cleanDeviceModel = deviceModel.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
         const cleanSearch = searchTerm.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
         
-        // Check if all words in search exist starting at word boundaries
         const searchWords = cleanSearch.split(' ');
         const allWordsMatchName = searchWords.every(searchWord => {
           const regex = new RegExp(`\\b${searchWord}`, 'i');
@@ -336,7 +229,6 @@ export default function ConfigBrowserClient() {
           return regex.test(cleanDeviceModel);
         });
         
-        // Search in both name and model with enhanced fuzzy matching
         return deviceName.includes(searchTerm) ||
                deviceModel.includes(searchTerm) ||
                cleanDeviceName.includes(cleanSearch) ||
@@ -379,50 +271,36 @@ export default function ConfigBrowserClient() {
 
   // --- 2. Main Data Fetching ---
   const fetchConfigs = useCallback(async (needsCount: boolean, page: number, signal?: AbortSignal) => {
-    const requestId = `${Date.now()}-${Math.random()}`;
-    
     setIsLoading(true);
-    
-    const cacheKey = `configs-${selectedGame?.id || ''}-${selectedGpu?.gpu || ''}-${selectedDevice?.model || ''}-${sortOption}-${page}-${needsCount}`;
-    
     try {
-      // Check if request was aborted before starting
-      if (signal?.aborted) {
-        return;
-      }
-      
-      // Test Supabase connection first
-      const connectionTest = await supabase.from('game_runs').select('id').limit(1);
-      if (connectionTest.error) {
-        console.error('Supabase connection error:', connectionTest.error);
-        throw new Error(`Database connection failed: ${connectionTest.error.message}`);
-      }
-      
-      // Check if request was aborted after connection test
-      if (signal?.aborted) {
-        return;
-      }
-      
-      const result = await cachedFetch(cacheKey, async () => {
-        return await withRetry(async () => {
-      // Build base query for data fetch
+      // Build base query for data fetch (includes joins for games and devices)
       let dataQuery = supabase
         .from('game_runs')
         .select(GAME_RUNS_QUERY);
 
-      // Apply filters with proper error handling
+      // --- Filter by Game ---
       if (selectedGame) {
         // CHANGED: Filter by NAME instead of ID.
         // This fixes the issue where filters.json has Steam IDs but DB has internal IDs.
         dataQuery = dataQuery.eq('game.name', selectedGame.name);
+      } else if (debouncedSearchTerm) {
+        dataQuery = dataQuery.ilike('game.name', `%${debouncedSearchTerm}%`);
       }
 
+      // --- Filter by GPU ---
       if (selectedGpu) {
-        dataQuery = dataQuery.ilike('device.gpu', `%${selectedGpu.gpu}%`);
+        // CHANGE: Use ilike instead of eq to handle casing mismatches (e.g., "Adreno" vs "adreno")
+        dataQuery = dataQuery.ilike('device.gpu', selectedGpu.gpu); 
+      } else if (debouncedGpu) {
+        dataQuery = dataQuery.ilike('device.gpu', `%${debouncedGpu}%`);
       }
 
+      // --- Filter by Device ---
       if (selectedDevice) {
-        dataQuery = dataQuery.ilike('device.model', `%${selectedDevice.model}%`);
+        // CHANGE: Use ilike instead of eq to handle casing/whitespace mismatches
+        dataQuery = dataQuery.ilike('device.model', selectedDevice.model);
+      } else if (debouncedDevice) {
+        dataQuery = dataQuery.ilike('device.model', `%${debouncedDevice}%`);
       }
 
       // Apply sorting to data query
@@ -474,110 +352,80 @@ export default function ConfigBrowserClient() {
       const to = from + ITEMS_PER_PAGE - 1;
       dataQuery = dataQuery.range(from, to);
 
+      // Check if request was aborted before continuing
+      if (signal?.aborted) {
+        return;
+      }
+
       // Fetch count only when filters change, not on every page change
       let countResult = null;
       if (needsCount) {
-        // Count query
+        // Build count query with same joins and filters as data query
+        // Select only 'id' to minimize data transfer while maintaining joins for filtering
+        // Must include 'name', 'gpu', and 'model' in the select to allow filtering on them
         let countQuery = supabase
           .from('game_runs')
-          .select('*', { count: 'exact', head: true });
+          .select('id, game:games!inner(id, name), device:devices!inner(id, gpu, model)', { count: 'exact', head: true });
 
-        // Apply same filters to count query
+        // Apply same filters to count query with the new .ilike logic
         if (selectedGame) {
           countQuery = countQuery.eq('game.name', selectedGame.name);
+        } else if (debouncedSearchTerm) {
+          countQuery = countQuery.ilike('game.name', `%${debouncedSearchTerm}%`);
         }
 
         if (selectedGpu) {
-          countQuery = countQuery.ilike('device.gpu', `%${selectedGpu.gpu}%`);
+          countQuery = countQuery.ilike('device.gpu', selectedGpu.gpu); // Changed to ilike
+        } else if (debouncedGpu) {
+          countQuery = countQuery.ilike('device.gpu', `%${debouncedGpu}%`);
         }
 
         if (selectedDevice) {
-          countQuery = countQuery.ilike('device.model', `%${selectedDevice.model}%`);
+          countQuery = countQuery.ilike('device.model', selectedDevice.model); // Changed to ilike
+        } else if (debouncedDevice) {
+          countQuery = countQuery.ilike('device.model', `%${debouncedDevice}%`);
         }
 
         countResult = await countQuery;
         if (countResult.error) throw countResult.error;
+        
+        // Check if request was aborted before updating state
+        if (signal?.aborted) {
+          return;
+        }
+        setTotalCount(countResult.count || 0);
       }
 
-      // Execute data query with better error handling
-      let dataResult;
-      try {
-        dataResult = await dataQuery;
-        if (dataResult.error) {
-          console.error('Data query error:', dataResult.error);
-          throw dataResult.error;
-        }
-      } catch (queryError) {
-        console.error('Query execution failed, trying simplified query:', queryError);
-        // Fallback to a simpler query if the complex one fails
-        try {
-          dataResult = await supabase
-            .from('game_runs')
-            .select('id,rating,avg_fps,notes,created_at,tags,game:games(name),device:devices(id,model,gpu,android_ver)')
-            .limit(ITEMS_PER_PAGE);
-          
-          if (dataResult.error) throw dataResult.error;
-        } catch (fallbackError) {
-          console.error('Fallback query also failed:', fallbackError);
-          throw fallbackError;
-        }
-      }
+      // Execute data query
+      const dataResult = await dataQuery;
+      if (dataResult.error) throw dataResult.error;
 
-      // Transform Data with safer property access
-      const transformedData: GameConfig[] = (dataResult.data || []).map((item: any) => {
-        try {
-          return {
-            id: item.id,
-            rating: item.rating,
-            avg_fps: item.avg_fps,
-            notes: item.notes,
-            created_at: item.created_at,
-            app_version: null,
-            tags: item.tags,
-            game: item.game || null,
-            device: item.device || null
-          };
-        } catch (error) {
-          console.error('Error transforming item:', item, error);
-          return {
-            id: item.id || 0,
-            rating: item.rating || 0,
-            avg_fps: item.avg_fps || 0,
-            notes: item.notes || null,
-            created_at: item.created_at || new Date().toISOString(),
-            app_version: null,
-            tags: item.tags || null,
-            game: null,
-            device: null
-          };
-        }
-      });
-
-          return { configs: transformedData, count: countResult?.count || null };
-        });
-      });
-      
       // Check if request was aborted before updating state
       if (signal?.aborted) {
         return;
       }
-      
-      setConfigs(result.configs);
-      if (result.count !== null) setTotalCount(result.count);
+
+      // Transform Data
+      const transformedData: GameConfig[] = (dataResult.data as unknown as SupabaseGameRun[] || []).map(item => ({
+        id: item.id,
+        rating: item.rating,
+        avg_fps: item.avg_fps,
+        notes: item.notes,
+        configs: item.configs,
+        created_at: item.created_at,
+        app_version: item.app_version?.semver || null,
+        tags: item.tags,
+        game: item.game || null,
+        device: item.device || null
+      }));
+
+      setConfigs(transformedData);
     } catch (error: any) {
       // Don't log error if request was aborted
       if (signal?.aborted || error?.name === 'AbortError') {
         return;
       }
       console.error('Error fetching configs:', error);
-      console.error('Error details:', {
-        selectedGame,
-        selectedGpu,
-        selectedDevice,
-        sortOption,
-        page,
-        needsCount
-      });
       setConfigs([]);
       setTotalCount(0);
     } finally {
@@ -588,56 +436,48 @@ export default function ConfigBrowserClient() {
     }
   }, [debouncedSearchTerm, debouncedGpu, debouncedDevice, selectedGame, selectedGpu, selectedDevice, sortOption]);
 
-  // Fetch with count when filters or sort changes - memoized to prevent re-renders
-  const filterKey = useMemo(() => 
-    `${selectedGame?.id || ''}-${selectedGpu?.gpu || ''}-${selectedDevice?.model || ''}-${sortOption}`,
-    [selectedGame?.id, selectedGpu?.gpu, selectedDevice?.model, sortOption]
-  );
-
+  // Fetch with count when filters or sort changes
   useEffect(() => {
     const abortController = new AbortController();
-    
-    const hasFilters = selectedGame || selectedGpu || selectedDevice;
-    if (!hasFilters) {
-      setConfigs([]);
-      setTotalCount(0);
-    } else {
-      setCurrentPage(1);
-      fetchConfigs(true, 1, abortController.signal);
-    }
+    setCurrentPage(1); // Reset to page 1 before fetching
+    fetchConfigs(true, 1, abortController.signal);
     
     return () => {
       abortController.abort();
     };
-  }, [filterKey, fetchConfigs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm, debouncedGpu, debouncedDevice, selectedGame, selectedGpu, selectedDevice, sortOption]);
 
   // Fetch without count when page changes, but skip when page is 1 (already handled by filter change effect)
   useEffect(() => {
     const abortController = new AbortController();
     
-    const hasFilters = selectedGame || selectedGpu || selectedDevice;
-    if (hasFilters && currentPage !== 1) {
+    // Skip if page is 1 (handled by filter change effect)
+    if (currentPage !== 1) {
       fetchConfigs(false, currentPage, abortController.signal);
     }
     
     return () => {
       abortController.abort();
     };
-  }, [currentPage, fetchConfigs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   // Update URL Params (Optional, for sharing links)
-  const updateUrl = useCallback((searchTerm: string, gpu: string, device: string) => {
-    const params = new URLSearchParams();
-    if (searchTerm) params.set('search', searchTerm);
-    if (gpu) params.set('gpu', gpu);
-    if (device) params.set('device', device);
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (debouncedSearchTerm) params.set('search', debouncedSearchTerm);
+    else params.delete('search');
+    
+    if (debouncedGpu) params.set('gpu', debouncedGpu);
+    else params.delete('gpu');
+
+    if (debouncedDevice) params.set('device', debouncedDevice);
+    else params.delete('device');
+
     const newUrl = `${pathname}?${params.toString()}`;
     router.replace(newUrl, { scroll: false });
-  }, [pathname, router]);
-
-  useEffect(() => {
-    updateUrl(debouncedSearchTerm, debouncedGpu, debouncedDevice);
-  }, [debouncedSearchTerm, debouncedGpu, debouncedDevice, updateUrl]);
+  }, [debouncedSearchTerm, debouncedGpu, debouncedDevice, pathname, router, searchParams]);
 
 
   // --- 3. Pagination Logic ---
@@ -646,13 +486,9 @@ export default function ConfigBrowserClient() {
   }, [totalCount]);
 
   // Scroll to top when changing pages
-  const scrollToTop = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
   useEffect(() => {
-    if (currentPage > 1) scrollToTop();
-  }, [currentPage, scrollToTop]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
 
   // --- 4. Handlers ---
@@ -685,114 +521,35 @@ export default function ConfigBrowserClient() {
     setShowDeviceSuggestions(false);
   };
 
-  const handleSearchAll = () => {
-    if (debouncedSearchTerm.length >= 2) handleGameSearch();
-    if (debouncedGpu.length >= 2) handleGpuSearch();
-    if (debouncedDevice.length >= 2) handleDeviceSearch();
-  };
-
-  const handleGameSearch = () => {
-    if (debouncedSearchTerm.length >= 2) {
-      setSelectedGame({ id: -1, name: debouncedSearchTerm });
-      setShowSuggestions(false);
-    }
-  };
-
-  const handleGpuSearch = () => {
-    if (debouncedGpu.length >= 2) {
-      setSelectedGpu({ gpu: debouncedGpu });
-      setShowGpuSuggestions(false);
-    }
-  };
-
-  const handleDeviceSearch = () => {
-    if (debouncedDevice.length >= 2) {
-      setSelectedDevice({ name: debouncedDevice, model: debouncedDevice });
-      setShowDeviceSuggestions(false);
-    }
-  };
-
-  const handleGameKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && debouncedSearchTerm.length >= 2) {
-      setSelectedGame({ id: -1, name: debouncedSearchTerm });
-      setShowSuggestions(false);
-    }
-  };
-
-  const handleGpuKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && debouncedGpu.length >= 2) {
-      setSelectedGpu({ gpu: debouncedGpu });
-      setShowGpuSuggestions(false);
-    }
-  };
-
-  const handleDeviceKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && debouncedDevice.length >= 2) {
-      setSelectedDevice({ name: debouncedDevice, model: debouncedDevice });
-      setShowDeviceSuggestions(false);
-    }
-  };
-
   const clearDeviceSearch = () => {
     setDeviceFilter('');
     setSelectedDevice(null);
   };
 
-  const handleOpenInEditor = async (config: GameConfig) => {
+  const handleOpenInEditor = (config: GameConfig) => {
+    const exportData = {
+      version: 1,
+      exportedFrom: "CommunityBrowser",
+      timestamp: Date.now(),
+      containerName: config.game?.name || "Community Config",
+      config: config.configs
+    };
     try {
-      const cacheKey = `config-${config.id}`;
-      const result = await cachedFetch(cacheKey, async () => {
-        return await withRetry(async () => {
-          const { data, error } = await supabase
-            .from('game_runs')
-            .select('configs')
-            .eq('id', config.id)
-            .single();
-          
-          if (error) throw error;
-          return data;
-        });
-      });
-      
-      const exportData = {
-        version: 1,
-        exportedFrom: "CommunityBrowser",
-        timestamp: Date.now(),
-        containerName: config.game?.name || "Community Config",
-        config: result.configs
-      };
-      
       localStorage.setItem('pendingConfig', JSON.stringify(exportData));
       router.push('/config-editor');
-    } catch (e) { 
-      console.error('Error loading config:', e); 
-    }
+    } catch (e) { console.error(e); }
   };
 
-  const handleDownloadConfig = async (config: GameConfig) => {
+  const handleDownloadConfig = (config: GameConfig) => {
+    const exportData = {
+      version: 1,
+      exportedFrom: "CommunityBrowser",
+      timestamp: Date.now(),
+      containerName: config.game?.name || "Community Config",
+      config: config.configs
+    };
+    
     try {
-      const cacheKey = `config-${config.id}`;
-      const result = await cachedFetch(cacheKey, async () => {
-        return await withRetry(async () => {
-          const { data, error } = await supabase
-            .from('game_runs')
-            .select('configs')
-            .eq('id', config.id)
-            .single();
-          
-          if (error) throw error;
-          return data;
-        });
-      });
-      
-      const exportData = {
-        version: 1,
-        exportedFrom: "CommunityBrowser",
-        timestamp: Date.now(),
-        containerName: config.game?.name || "Community Config",
-        config: result.configs
-      };
-      
       const jsonString = JSON.stringify(exportData, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -824,13 +581,13 @@ export default function ConfigBrowserClient() {
         </div>
 
         {/* --- Control Bar (Search, Sort, Filter) --- */}
-        <div className="md:relative sticky top-4 z-30 mb-8 bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl shadow-black/20">
+        <div className="md:static sticky top-4 z-30 mb-8 bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl shadow-black/20">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             
             {/* 1. Game Autocomplete Search */}
-            <div className={`md:col-span-3 relative ${showSuggestions ? 'z-50' : 'z-20'}`} ref={wrapperRef}>
+            <div className="md:col-span-4 relative" ref={wrapperRef}>
               <div className="relative group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-cyan-400" size={18} />
+                <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-cyan-400`} size={18} />
                 <input
                   type="text"
                   placeholder="Search game name..."
@@ -842,7 +599,6 @@ export default function ConfigBrowserClient() {
                   onFocus={() => {
                     if (gameSuggestions.length > 0) setShowSuggestions(true);
                   }}
-                  onKeyDown={handleGameKeyDown}
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-cyan-500/20 transition-all"
                 />
                 {searchTerm && (
@@ -854,7 +610,7 @@ export default function ConfigBrowserClient() {
 
               {/* Suggestions Dropdown */}
               {showSuggestions && gameSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100] max-h-64 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[9999] max-h-64 overflow-y-auto">
                   <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80 sticky top-0">SUGGESTED GAMES</div>
                   {gameSuggestions.map((game) => (
                     <button
@@ -871,9 +627,9 @@ export default function ConfigBrowserClient() {
             </div>
 
             {/* 2. GPU Filter with Autocomplete */}
-            <div className={`md:col-span-3 relative ${showGpuSuggestions ? 'z-50' : 'z-10'}`} ref={gpuWrapperRef}>
+            <div className="md:col-span-3 relative" ref={gpuWrapperRef}>
               <div className="relative group">
-                <Cpu className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-purple-400" size={18} />
+                <Cpu className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-purple-400`} size={18} />
                 <input
                   type="text"
                   placeholder="GPU (e.g. Adreno 740)"
@@ -885,7 +641,6 @@ export default function ConfigBrowserClient() {
                   onFocus={() => {
                     if (gpuSuggestions.length > 0) setShowGpuSuggestions(true);
                   }}
-                  onKeyDown={handleGpuKeyDown}
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-purple-500/20 transition-all"
                 />
                 {gpuFilter && (
@@ -897,7 +652,7 @@ export default function ConfigBrowserClient() {
 
               {/* GPU Suggestions Dropdown */}
               {showGpuSuggestions && gpuSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100] max-h-64 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[9999] max-h-64 overflow-y-auto">
                   <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80 sticky top-0">SUGGESTED GPUs</div>
                   {gpuSuggestions.map((gpu, index) => (
                     <button
@@ -914,9 +669,9 @@ export default function ConfigBrowserClient() {
             </div>
 
             {/* 3. Device Filter with Autocomplete */}
-            <div className={`md:col-span-3 relative ${showDeviceSuggestions ? 'z-50' : 'z-0'}`} ref={deviceWrapperRef}>
+            <div className="md:col-span-3 relative" ref={deviceWrapperRef}>
               <div className="relative group">
-                <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-green-400" size={18} />
+                <Smartphone className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 text-slate-500 group-focus-within:text-green-400`} size={18} />
                 <input
                   type="text"
                   placeholder="Device (e.g. Pixel, Galaxy)"
@@ -928,7 +683,6 @@ export default function ConfigBrowserClient() {
                   onFocus={() => {
                     if (deviceSuggestions.length > 0) setShowDeviceSuggestions(true);
                   }}
-                  onKeyDown={handleDeviceKeyDown}
                   className="w-full pl-11 pr-10 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-green-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-green-500/20 transition-all"
                 />
                 {deviceFilter && (
@@ -940,7 +694,7 @@ export default function ConfigBrowserClient() {
 
               {/* Device Suggestions Dropdown */}
               {showDeviceSuggestions && deviceSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[100] max-h-64 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-[9999] max-h-64 overflow-y-auto">
                   <div className="text-xs font-semibold text-slate-500 px-4 py-2 bg-slate-800/80 sticky top-0">SUGGESTED DEVICES</div>
                   {deviceSuggestions.map((device, index) => (
                     <button
@@ -949,7 +703,7 @@ export default function ConfigBrowserClient() {
                       className="w-full text-left px-4 py-3 hover:bg-green-900/20 text-slate-200 hover:text-green-400 transition-colors flex items-center justify-between group"
                     >
                       <div className="flex flex-col">
-                      <span className="font-medium">{device.name.replace(/[<>"'&]/g, '')}</span>
+                        <span className="font-medium">{device.name.replace(/[<>"'&]/g, '')}</span>
                         <span className="text-xs text-slate-500">{device.model.replace(/[<>"'&]/g, '')}</span>
                       </div>
                       <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -977,17 +731,6 @@ export default function ConfigBrowserClient() {
                 </select>
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
               </div>
-            </div>
-
-            {/* 5. Search Button */}
-            <div className="md:col-span-1 relative">
-              <button
-                onClick={handleSearchAll}
-                className="w-full flex items-center justify-center py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/20 hover:shadow-cyan-500/20 active:scale-[0.98]"
-                title="Search"
-              >
-                <Search size={18} />
-              </button>
             </div>
 
           </div>
