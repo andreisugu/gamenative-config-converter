@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Search, Star, Zap, ChevronLeft, ChevronRight, Cpu, Filter, Download, X, ChevronDown, Smartphone, Eye, EyeOff } from 'lucide-react';
+import { Search, Star, Zap, ChevronLeft, ChevronRight, Cpu, Filter, Download, X, ChevronDown, Smartphone } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -131,9 +131,6 @@ export default function ConfigBrowserClient() {
   // Device Autocomplete State
   const [showDeviceSuggestions, setShowDeviceSuggestions] = useState(false);
   const deviceWrapperRef = useRef<HTMLDivElement>(null);
-  
-  // Show incomplete entries toggle
-  const [showIncomplete, setShowIncomplete] = useState(false);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -289,25 +286,10 @@ export default function ConfigBrowserClient() {
   const fetchConfigs = useCallback(async (needsCount: boolean, page: number, signal?: AbortSignal) => {
     setIsLoading(true);
     try {
-      // Determine which fields need !inner joins based on active filters
-      const hasGameFilter = committedSelectedGame || committedSearchTerm;
-      const hasDeviceFilter = committedSelectedGpu || committedSelectedDevice || committedGpuFilter || committedDeviceFilter;
-      
-      // Use !inner only for fields that are being filtered OR when not showing incomplete
-      const gameJoinType = (!showIncomplete || hasGameFilter) ? '!inner' : '';
-      const deviceJoinType = (!showIncomplete || hasDeviceFilter) ? '!inner' : '';
-      
-      const dynamicQuery = `id,rating,avg_fps,notes,configs,created_at,app_version:app_versions(semver),tags,game:games${gameJoinType}(id,name),device:devices${deviceJoinType}(id,model,gpu,android_ver)`;
-
       // Build base query for data fetch
       let dataQuery = supabase
         .from('game_runs')
-        .select(dynamicQuery);
-
-      // Strict filtering - only if NOT showing incomplete
-      if (!showIncomplete) {
-        dataQuery = dataQuery.not('avg_fps', 'is', null);
-      }
+        .select(GAME_RUNS_QUERY);
 
       // --- Filter by Game ---
       if (committedSelectedGame) {
@@ -387,21 +369,9 @@ export default function ConfigBrowserClient() {
       // Fetch count only when filters change, not on every page change
       let countResult = null;
       if (needsCount) {
-        // Build count query with same joins and filters as data query
-        const hasGameFilter = committedSelectedGame || committedSearchTerm;
-        const hasDeviceFilter = committedSelectedGpu || committedSelectedDevice || committedGpuFilter || committedDeviceFilter;
-        
-        const gameJoinType = (!showIncomplete || hasGameFilter) ? '!inner' : '';
-        const deviceJoinType = (!showIncomplete || hasDeviceFilter) ? '!inner' : '';
-        
         let countQuery = supabase
           .from('game_runs')
-          .select(`id, game:games${gameJoinType}(id, name), device:devices${deviceJoinType}(id, gpu, model)`, { count: 'exact', head: true });
-
-        // Apply strict filtering if NOT showing incomplete
-        if (!showIncomplete) {
-          countQuery = countQuery.not('avg_fps', 'is', null);
-        }
+          .select('id, game:games!inner(id, name), device:devices!inner(id, gpu, model)', { count: 'exact', head: true });
 
         // Apply same filters to count query
         if (committedSelectedGame) {
@@ -470,7 +440,7 @@ export default function ConfigBrowserClient() {
         setIsLoading(false);
       }
     }
-  }, [committedSearchTerm, committedGpuFilter, committedDeviceFilter, committedSelectedGame, committedSelectedGpu, committedSelectedDevice, sortOption, showIncomplete]);
+  }, [committedSearchTerm, committedGpuFilter, committedDeviceFilter, committedSelectedGame, committedSelectedGpu, committedSelectedDevice, sortOption]);
 
   // Fetch with count when filters or sort changes or search button is clicked
   useEffect(() => {
@@ -482,7 +452,7 @@ export default function ConfigBrowserClient() {
       abortController.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTrigger, sortOption, showIncomplete]);
+  }, [searchTrigger, sortOption]);
 
   // Fetch without count when page changes, but skip when page is 1 (already handled by filter change effect)
   useEffect(() => {
@@ -690,7 +660,7 @@ export default function ConfigBrowserClient() {
           <div className="grid grid-cols-1 gap-4">
             
             {/* Filter Row */}
-            <div className="grid grid-cols-1 md:grid-cols-15 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-14 gap-4">
               
               {/* 1. Game Autocomplete Search */}
               <div className="md:col-span-4 relative" ref={wrapperRef}>
@@ -859,23 +829,8 @@ export default function ConfigBrowserClient() {
                 </div>
               </div>
 
-              {/* 5. Toggle Incomplete Button */}
-              <div className="md:col-span-1 flex items-end">
-                <button
-                  onClick={() => setShowIncomplete(!showIncomplete)}
-                  className={`w-full flex items-center justify-center px-4 py-3 font-bold rounded-xl transition-all border ${
-                    showIncomplete 
-                      ? 'bg-amber-600/20 border-amber-500/50 text-amber-400 hover:bg-amber-600/30' 
-                      : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                  }`}
-                  title={showIncomplete ? "Showing all entries (including incomplete)" : "Hiding incomplete entries"}
-                >
-                  {showIncomplete ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-              </div>
-
-              {/* 6. Search Button */}
-              <div className="md:col-span-1 flex items-end">
+              {/* 5. Search Button */}
+              <div className="md:col-span-1 flex items-center">
                 <button
                   onClick={handleSearch}
                   className="w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/20 hover:shadow-cyan-500/30 active:scale-[0.98]"
