@@ -382,31 +382,19 @@ export default function ConfigBrowserClient() {
 
       // Apply filters with proper error handling
       if (selectedGame) {
-        try {
-          if (selectedGame.id === -1) {
-            dataQuery = dataQuery.eq('game.name', selectedGame.name);
-          } else {
-            dataQuery = dataQuery.eq('game_id', selectedGame.id);
-          }
-        } catch (error) {
-          console.error('Error applying game filter:', error);
+        if (selectedGame.id === -1) {
+          dataQuery = dataQuery.eq('game.name', selectedGame.name);
+        } else {
+          dataQuery = dataQuery.eq('game_id', selectedGame.id);
         }
       }
 
       if (selectedGpu) {
-        try {
-          dataQuery = dataQuery.ilike('device.gpu', `%${selectedGpu.gpu}%`);
-        } catch (error) {
-          console.error('Error applying GPU filter:', error);
-        }
+        dataQuery = dataQuery.ilike('device.gpu', `%${selectedGpu.gpu}%`);
       }
 
       if (selectedDevice) {
-        try {
-          dataQuery = dataQuery.ilike('device.model', `%${selectedDevice.model}%`);
-        } catch (error) {
-          console.error('Error applying device filter:', error);
-        }
+        dataQuery = dataQuery.ilike('device.model', `%${selectedDevice.model}%`);
       }
 
       // Apply sorting to data query
@@ -461,39 +449,30 @@ export default function ConfigBrowserClient() {
       // Fetch count only when filters change, not on every page change
       let countResult = null;
       if (needsCount) {
-        try {
-          // Simplified count query
-          let countQuery = supabase
-            .from('game_runs')
-            .select('*', { count: 'exact', head: true });
+        // Count query
+        let countQuery = supabase
+          .from('game_runs')
+          .select('*', { count: 'exact', head: true });
 
-          // Apply same filters to count query
-          if (selectedGame) {
-            if (selectedGame.id === -1) {
-              countQuery = countQuery.eq('game.name', selectedGame.name);
-            } else {
-              countQuery = countQuery.eq('game_id', selectedGame.id);
-            }
+        // Apply same filters to count query
+        if (selectedGame) {
+          if (selectedGame.id === -1) {
+            countQuery = countQuery.eq('game.name', selectedGame.name);
+          } else {
+            countQuery = countQuery.eq('game_id', selectedGame.id);
           }
-
-          if (selectedGpu) {
-            countQuery = countQuery.ilike('device.gpu', `%${selectedGpu.gpu}%`);
-          }
-
-          if (selectedDevice) {
-            countQuery = countQuery.ilike('device.model', `%${selectedDevice.model}%`);
-          }
-
-          countResult = await countQuery;
-          if (countResult.error) {
-            console.error('Count query error:', countResult.error);
-            throw countResult.error;
-          }
-        } catch (error) {
-          console.error('Error in count query:', error);
-          // Continue without count if it fails
-          countResult = { count: 0 };
         }
+
+        if (selectedGpu) {
+          countQuery = countQuery.ilike('device.gpu', `%${selectedGpu.gpu}%`);
+        }
+
+        if (selectedDevice) {
+          countQuery = countQuery.ilike('device.model', `%${selectedDevice.model}%`);
+        }
+
+        countResult = await countQuery;
+        if (countResult.error) throw countResult.error;
       }
 
       // Execute data query with better error handling
