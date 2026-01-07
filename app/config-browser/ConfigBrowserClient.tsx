@@ -71,7 +71,7 @@ interface ConfigBrowserClientProps {
 const ITEMS_PER_PAGE = 15;
 const DEBOUNCE_MS = 300;
 const SUGGESTION_LIMIT = 12;
-const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,created_at,app_version,tags,game:games(id,name),device:devices(id,model,gpu,android_ver)';
+const GAME_RUNS_QUERY = 'id,rating,avg_fps,notes,created_at,app_version:app_versions(semver),tags,game:games(id,name),device:devices(id,model,gpu,android_ver)';
 const COUNT_QUERY = 'id';
 const CONFIG_QUERY = 'configs';
 
@@ -478,7 +478,7 @@ export default function ConfigBrowserClient() {
         avg_fps: item.avg_fps,
         notes: item.notes,
         created_at: item.created_at,
-        app_version: item.app_version,
+        app_version: Array.isArray(item.app_version) ? item.app_version[0]?.semver || null : item.app_version?.semver || null,
         tags: item.tags,
         game: Array.isArray(item.game) ? item.game[0] || null : item.game || null,
         device: Array.isArray(item.device) ? item.device[0] || null : item.device || null
