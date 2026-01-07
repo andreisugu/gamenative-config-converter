@@ -510,7 +510,7 @@ export default function ConfigBrowserClient() {
         try {
           dataResult = await supabase
             .from('game_runs')
-            .select('id,rating,avg_fps,notes,created_at,tags')
+            .select('id,rating,avg_fps,notes,created_at,tags,game:games(name),device:devices(id,model,gpu,android_ver)')
             .limit(ITEMS_PER_PAGE);
           
           if (dataResult.error) throw dataResult.error;
@@ -521,7 +521,7 @@ export default function ConfigBrowserClient() {
       }
 
       // Transform Data with safer property access
-      const transformedData: GameConfig[] = (dataResult.data || []).map(item => {
+      const transformedData: GameConfig[] = (dataResult.data || []).map((item: any) => {
         try {
           return {
             id: item.id,
@@ -529,10 +529,10 @@ export default function ConfigBrowserClient() {
             avg_fps: item.avg_fps,
             notes: item.notes,
             created_at: item.created_at,
-            app_version: null, // Simplified - remove complex app_version logic for now
+            app_version: null,
             tags: item.tags,
-            game: Array.isArray(item.game) ? item.game[0] || null : item.game || null,
-            device: Array.isArray(item.device) ? item.device[0] || null : item.device || null
+            game: item.game || null,
+            device: item.device || null
           };
         } catch (error) {
           console.error('Error transforming item:', item, error);
