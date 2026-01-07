@@ -1,41 +1,37 @@
-const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const { createClient } = require('@supabase/supabase-js');
 
 async function generateGpus() {
   try {
-    // GPUs from generated file or fallback to Supabase
-    let gpus = [];
-    try {
-      const gpuFileResponse = await fetch('./public/gpus.json');
-      if (gpuFileResponse.ok) {
-        gpus = await gpuFileResponse.json();
-        console.log('Using GPUs from public/gpus.json file');
-      } else {
-        throw new Error('public/gpus.json not found');
-      }
-    } catch {
-      console.log('Falling back to Supabase for GPUs');
-      const { data: devices } = await supabase.from('devices').select('gpu');
-      gpus = [...new Set((devices || []).map(d => d.gpu).filter(Boolean))];
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    
+    // Fetch GPUs from database (fallback only)
+    let allData = [];
+    let from = 0;
+    const batchSize = 1000;
+    
+    while (true) {
+      const { data, error } = await supabase
+        .from('devices')
+        .select('gpu')
+        .not('gpu', 'is', null)
+        .range(from, from + batchSize - 1);
+
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      
+      allData.push(...data);
+      if (data.length < batchSize) break;
+      from += batchSize;
     }
 
-    // Read existing filters
-    let existingData = { games: [], gpus: [], devices: [], updatedAt: new Date().toISOString() };
-    try {
-      existingData = JSON.parse(fs.readFileSync('./public/filters.json', 'utf8'));
-    } catch (e) {}
+    const uniqueGpus = [...new Set(allData.map(d => d.gpu))].sort();
 
-    // Update only GPUs
-    const filterData = {
-      ...existingData,
-      gpus: gpus,
-      updatedAt: new Date().toISOString()
-    };
-
-    fs.writeFileSync('./public/filters.json', JSON.stringify(filterData));
-    console.log(`Generated ${filterData.gpus.length} GPUs`);
+    fs.writeFileSync('./public/gpus.json', JSON.stringify(uniqueGpus, null, 2));
+    console.log(`Generated gpus.json with ${uniqueGpus.length} GPUs`);
   } catch (error) {
     console.error('Error generating GPUs:', error);
     process.exit(1);

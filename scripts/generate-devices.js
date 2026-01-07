@@ -30,21 +30,9 @@ async function generateDevices() {
       })
       .filter(d => d && d.name && d.model && d.name.length > 3);
 
-    // Read existing filters
-    let existingData = { games: [], gpus: [], devices: [], updatedAt: new Date().toISOString() };
-    try {
-      existingData = JSON.parse(fs.readFileSync('./public/filters.json', 'utf8'));
-    } catch (e) {}
-
-    // Update only devices
-    const filterData = {
-      ...existingData,
-      devices: playDevices,
-      updatedAt: new Date().toISOString()
-    };
-
-    fs.writeFileSync('./public/filters.json', JSON.stringify(filterData));
-    console.log(`Generated ${filterData.devices.length} devices`);
+    // This script only generates Google Play devices for GitHub Actions
+    // The combine script will merge with fallback data
+    console.log(`Generated ${playDevices.length} Google Play devices`);
   } catch (error) {
     console.error('Error generating devices:', error);
     process.exit(1);

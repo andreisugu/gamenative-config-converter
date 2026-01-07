@@ -26,21 +26,9 @@ async function generateGames() {
       .map(app => ({ id: app.appid, name: app.name }))
       .slice(0, 50000);
 
-    // Read existing filters
-    let existingData = { games: [], gpus: [], devices: [], updatedAt: new Date().toISOString() };
-    try {
-      existingData = JSON.parse(fs.readFileSync('./public/filters.json', 'utf8'));
-    } catch (e) {}
-
-    // Update only games
-    const filterData = {
-      ...existingData,
-      games: filteredGames,
-      updatedAt: new Date().toISOString()
-    };
-
-    fs.writeFileSync('./public/filters.json', JSON.stringify(filterData));
-    console.log(`Generated ${filterData.games.length} Steam games`);
+    // This script only generates Steam games for GitHub Actions
+    // The combine script will merge with fallback data
+    console.log(`Generated ${filteredGames.length} Steam games`);
   } catch (error) {
     console.error('Error generating games:', error);
     process.exit(1);
