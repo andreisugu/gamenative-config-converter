@@ -405,11 +405,6 @@ export default function ConfigBrowserClient() {
       
       const result = await cachedFetch(cacheKey, async () => {
         return await withRetry(async () => {
-      // Check if request was aborted before query
-      if (signal?.aborted) {
-        throw new Error('Request aborted');
-      }
-      
       // Build base query for data fetch
       let dataQuery = supabase
         .from('game_runs')
@@ -502,11 +497,6 @@ export default function ConfigBrowserClient() {
 
         countResult = await countQuery;
         if (countResult.error) throw countResult.error;
-        
-        // Check if request was aborted after count query
-        if (signal?.aborted) {
-          throw new Error('Request aborted');
-        }
       }
 
       // Execute data query with better error handling
@@ -531,11 +521,6 @@ export default function ConfigBrowserClient() {
           console.error('Fallback query also failed:', fallbackError);
           throw fallbackError;
         }
-      }
-
-      // Check if request was aborted before transforming data
-      if (signal?.aborted) {
-        throw new Error('Request aborted');
       }
 
       // Transform Data with safer property access
