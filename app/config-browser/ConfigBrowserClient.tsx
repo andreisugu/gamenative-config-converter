@@ -137,6 +137,9 @@ export default function ConfigBrowserClient() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [goToPage, setGoToPage] = useState('');
+  
+  // Expanded notes state
+  const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
 
   // Fast debounce for showing filter suggestions (250ms)
   const debouncedSearchTermFast = useDebounce(searchTerm, SUGGESTION_DEBOUNCE_MS);
@@ -972,7 +975,7 @@ export default function ConfigBrowserClient() {
                           <span className="ml-6">Screen: {config.configs.screenSize}</span>
                         </div>
                       )}
-                      {config.tags && (
+                      {config.tags && typeof config.tags === 'string' && (
                         <div className="flex items-start gap-2 text-xs text-slate-500">
                           <span className="ml-6">Tags:</span>
                           <div className="flex flex-wrap gap-1">
@@ -1033,7 +1036,27 @@ export default function ConfigBrowserClient() {
                     </div>
                     
                     {config.notes ? (
-                      <p className="text-sm text-slate-400 line-clamp-2 italic h-10">"{config.notes}"</p>
+                      <div className="text-sm text-slate-400 italic">
+                        <div className={expandedNotes.has(config.id) ? '' : 'line-clamp-2 h-10'}>
+                          "{config.notes}"
+                        </div>
+                        {config.notes.length > 100 && (
+                          <button
+                            onClick={() => {
+                              const newExpanded = new Set(expandedNotes);
+                              if (expandedNotes.has(config.id)) {
+                                newExpanded.delete(config.id);
+                              } else {
+                                newExpanded.add(config.id);
+                              }
+                              setExpandedNotes(newExpanded);
+                            }}
+                            className="text-cyan-400 hover:text-cyan-300 text-xs mt-1 transition-colors"
+                          >
+                            {expandedNotes.has(config.id) ? 'Show less' : 'Show more'}
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <p className="text-sm text-slate-600 italic h-10">No notes provided.</p>
                     )}
