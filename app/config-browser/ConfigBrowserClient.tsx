@@ -373,25 +373,25 @@ export default function ConfigBrowserClient() {
       if (needsCount) {
         let countQuery = supabase
           .from('game_runs')
-          .select('id, game:games!inner(id, name), device:devices!inner(id, gpu, model)', { count: 'exact', head: true });
+          .select('*', { count: 'exact', head: true });
 
         // Apply same filters to count query
         if (committedSelectedGame) {
-          countQuery = countQuery.eq('game.name', committedSelectedGame.name);
+          countQuery = countQuery.eq('games.name', committedSelectedGame.name);
         } else if (committedSearchTerm) {
-          countQuery = countQuery.ilike('game.name', `%${committedSearchTerm}%`);
+          countQuery = countQuery.ilike('games.name', `%${committedSearchTerm}%`);
         }
 
         if (committedSelectedGpu) {
-          countQuery = countQuery.ilike('device.gpu', committedSelectedGpu.gpu);
+          countQuery = countQuery.ilike('devices.gpu', committedSelectedGpu.gpu);
         } else if (committedGpuFilter) {
-          countQuery = countQuery.ilike('device.gpu', `%${committedGpuFilter}%`);
+          countQuery = countQuery.ilike('devices.gpu', `%${committedGpuFilter}%`);
         }
 
         if (committedSelectedDevice) {
-          countQuery = countQuery.ilike('device.model', committedSelectedDevice.model);
+          countQuery = countQuery.ilike('devices.model', committedSelectedDevice.model);
         } else if (committedDeviceFilter) {
-          countQuery = countQuery.ilike('device.model', `%${committedDeviceFilter}%`);
+          countQuery = countQuery.ilike('devices.model', `%${committedDeviceFilter}%`);
         }
 
         countResult = await countQuery;
@@ -962,9 +962,9 @@ export default function ConfigBrowserClient() {
                           <span className="ml-6">Container: {config.configs.containerVariant}</span>
                         </div>
                       )}
-                      {config.configs?.extraData?.graphicsDriver && (
+                      {config.configs?.graphicsDriver && (
                         <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <span className="ml-6">Driver: {config.configs.extraData.graphicsDriver}</span>
+                          <span className="ml-6">Driver: {config.configs.graphicsDriver}</span>
                         </div>
                       )}
                       {config.configs?.screenSize && (
@@ -974,7 +974,14 @@ export default function ConfigBrowserClient() {
                       )}
                       {config.tags && (
                         <div className="flex items-start gap-2 text-xs text-slate-500">
-                          <span className="ml-6 line-clamp-1">Tags: {config.tags}</span>
+                          <span className="ml-6">Tags:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {config.tags.split(',').map((tag, index) => (
+                              <span key={index} className="px-2 py-1 bg-slate-700/50 text-slate-300 rounded-md text-xs">
+                                {tag.trim()}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1001,16 +1008,16 @@ export default function ConfigBrowserClient() {
                           </span>
                           <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Average</span>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4">
                         {config.session_length_sec && (
-                          <div className="text-center">
+                          <div className="text-center ml-4">
                             <span className="block text-sm font-bold text-slate-200">
                               {Math.round(config.session_length_sec / 60)}m
                             </span>
                             <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Playtime</span>
                           </div>
                         )}
+                      </div>
+                      <div className="flex items-center gap-4">
                         <div className="text-right">
                            <span className="block text-xs text-slate-500">
                              {new Date(config.created_at).toLocaleString(undefined, { 
