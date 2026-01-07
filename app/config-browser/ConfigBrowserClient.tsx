@@ -253,8 +253,8 @@ export default function ConfigBrowserClient() {
       .filter(g => {
         const name = g.name.toLowerCase();
         // Enhanced fuzzy matching: remove punctuation, parentheses, and normalize spaces
-        const cleanName = name.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-        const cleanSearch = searchTerm.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanName = name.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+        const cleanSearch = searchTerm.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
         
         // Check if all words in search exist in the game name
         const searchWords = cleanSearch.split(' ');
@@ -478,7 +478,7 @@ export default function ConfigBrowserClient() {
         avg_fps: item.avg_fps,
         notes: item.notes,
         created_at: item.created_at,
-        app_version: Array.isArray(item.app_version) ? item.app_version[0]?.semver || null : item.app_version?.semver || null,
+        app_version: Array.isArray(item.app_version) ? item.app_version[0]?.semver || null : (item.app_version as any)?.semver || null,
         tags: item.tags,
         game: Array.isArray(item.game) ? item.game[0] || null : item.game || null,
         device: Array.isArray(item.device) ? item.device[0] || null : item.device || null
