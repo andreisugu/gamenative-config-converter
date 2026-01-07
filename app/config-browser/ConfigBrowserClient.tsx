@@ -996,8 +996,8 @@ export default function ConfigBrowserClient() {
                       <div className="flex items-center gap-2">
                         {/* Dynamic color for icon: Grey if null, Red if low, Green if high */}
                         <div className={`p-1.5 rounded-md ${
-                          config.avg_fps === null 
-                            ? 'bg-slate-700/50 text-slate-500' // Style for NULL
+                          config.avg_fps === null || config.avg_fps === 0
+                            ? 'bg-slate-700/50 text-slate-500' // Style for NULL or 0
                             : config.avg_fps >= 30 
                               ? 'bg-green-500/20 text-green-400' 
                               : 'bg-red-500/20 text-red-400'
@@ -1006,12 +1006,12 @@ export default function ConfigBrowserClient() {
                         </div>
                         <div>
                           {/* Check for NULL explicitly. Math.round(null) === 0, which is misleading. */}
-                          <span className={`block text-sm font-bold leading-none ${config.avg_fps === null ? 'text-slate-500' : 'text-slate-200'}`}>
-                            {config.avg_fps !== null ? `${Math.round(config.avg_fps)} FPS` : 'N/A'}
+                          <span className={`block text-sm font-bold leading-none ${config.avg_fps === null || config.avg_fps === 0 ? 'text-slate-500' : 'text-slate-200'}`}>
+                            {config.avg_fps !== null && config.avg_fps !== 0 ? `${Math.round(config.avg_fps)} FPS` : '--'}
                           </span>
                           <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Average</span>
                         </div>
-                        {config.session_length_sec && (
+                        {config.session_length_sec && config.session_length_sec > 0 && (
                           <div className="text-center ml-4">
                             <span className="block text-sm font-bold text-slate-200">
                               {Math.round(config.session_length_sec / 60)}m
