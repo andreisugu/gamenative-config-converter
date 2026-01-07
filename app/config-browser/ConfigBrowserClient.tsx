@@ -228,7 +228,9 @@ export default function ConfigBrowserClient() {
   // --- Load Static Filter Data ---
   useEffect(() => {
     setFiltersLoading(true);
-    fetch('/filters.json')
+    // Use basePath for GitHub Pages deployment
+    const basePath = process.env.NODE_ENV === 'production' ? '/gamenative-config-tools' : '';
+    fetch(`${basePath}/filters.json`)
       .then(res => {
         if (!res.ok) throw new Error(`Failed to load filters: ${res.status}`);
         return res.json();
