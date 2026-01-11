@@ -15,7 +15,7 @@ interface GameConfig {
   configs: any;
   created_at: string;
   app_version: string | null;
-  tags: string | null;
+  tags: any[] | null;
   session_length_sec: number | null;
   game: {
     id: number;

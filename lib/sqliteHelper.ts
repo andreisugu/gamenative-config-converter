@@ -11,7 +11,7 @@ export interface GameConfig {
   configs: any;
   created_at: string;
   app_version: string | null;
-  tags: string | null;
+  tags: any[] | null;
   session_length_sec: number | null;
   game: {
     id: number;
@@ -57,6 +57,10 @@ async function loadDatabase(basePath: string = ''): Promise<Database> {
   
   const buffer = await response.arrayBuffer();
   dbInstance = new SQL.Database(new Uint8Array(buffer));
+  
+  if (!dbInstance) {
+    throw new Error('Failed to initialize database');
+  }
   
   return dbInstance;
 }
