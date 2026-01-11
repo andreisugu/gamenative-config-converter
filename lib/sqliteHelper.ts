@@ -35,8 +35,9 @@ export interface FilterSnapshot {
 // Initialize SQL.js once
 async function initSQL() {
   if (!sqlPromise) {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/gamenative-config-tools';
     sqlPromise = initSqlJs({
-      locateFile: (file) => `https://sql.js.org/dist/${file}`
+      locateFile: (file) => `${basePath}/${file}`
     });
   }
   return sqlPromise;
@@ -49,7 +50,8 @@ async function loadDatabase(basePath: string = ''): Promise<Database> {
   }
 
   const SQL = await initSQL();
-  const response = await fetch(`${basePath}/cached-configs.sqlite`);
+  const dbPath = basePath ? `${basePath}/cached-configs.sqlite` : '/cached-configs.sqlite';
+  const response = await fetch(dbPath);
   
   if (!response.ok) {
     throw new Error(`Failed to load SQLite database: ${response.status}`);

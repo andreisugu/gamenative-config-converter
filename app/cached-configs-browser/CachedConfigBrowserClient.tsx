@@ -134,7 +134,7 @@ export default function CachedConfigBrowserClient() {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/gamenative-config-tools';
     
     fetchAllConfigs(basePath)
       .then(data => {
@@ -165,7 +165,7 @@ export default function CachedConfigBrowserClient() {
   useEffect(() => {
     let cancelled = false;
     setFiltersLoading(true);
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/gamenative-config-tools';
     
     fetchFilterSnapshot(basePath)
       .then(data => {
