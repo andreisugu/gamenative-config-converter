@@ -63,6 +63,18 @@ const SUGGESTION_LIMIT = 15;
 const UNKNOWN_GAME = 'Unknown Game';
 const UNKNOWN_GPU = 'Unknown';
 
+// --- Helper Functions ---
+
+/**
+ * Extracts the filename from a file path
+ * Handles both Windows (\) and Unix (/) path separators
+ * Returns the default value if the filename cannot be extracted
+ */
+function getFilenameFromPath(path: string, defaultValue: string = UNKNOWN_GAME): string {
+  const filename = path.split(/[/\\]/).pop();
+  return filename?.trim() || defaultValue;
+}
+
 // --- Helper Hook: useDebounce ---
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -538,9 +550,7 @@ export default function CachedConfigBrowserClient() {
   const getDisplayName = useCallback((config: GameConfig) => {
     const gameName = config.game?.name || UNKNOWN_GAME;
     if (gameName === UNKNOWN_GAME && config.configs_executablePath) {
-      // Extract filename from path, handling edge cases including undefined and empty strings
-      const filename = config.configs_executablePath.split(/[/\\]/).pop();
-      return (filename?.trim()) || UNKNOWN_GAME;
+      return getFilenameFromPath(config.configs_executablePath, UNKNOWN_GAME);
     }
     return gameName;
   }, []);
