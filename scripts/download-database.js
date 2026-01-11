@@ -19,12 +19,15 @@ async function downloadTable(tableName, batchSize = 1000) {
   let from = 0;
   let totalFetched = 0;
 
+  // Use smaller batch size for large tables to avoid timeout
+  const actualBatchSize = tableName === 'game_runs' ? 100 : batchSize;
+
   try {
     while (true) {
       const { data, error, count } = await supabase
         .from(tableName)
         .select('*', { count: 'exact' })
-        .range(from, from + batchSize - 1);
+        .range(from, from + actualBatchSize - 1);
 
       if (error) {
         console.error(`Error fetching from ${tableName}:`, error);
@@ -38,8 +41,8 @@ async function downloadTable(tableName, batchSize = 1000) {
       
       console.log(`  Fetched ${totalFetched} rows from ${tableName}...`);
 
-      if (data.length < batchSize) break;
-      from += batchSize;
+      if (data.length < actualBatchSize) break;
+      from += actualBatchSize;
     }
 
     console.log(`✓ Downloaded ${allData.length} rows from ${tableName}`);
@@ -56,11 +59,11 @@ async function downloadEntireDatabase() {
 
     // Get list of all tables by attempting to fetch from known tables
     // For a complete database export, we need to know which tables exist
+    // Note: 'gpus' table doesn't exist - GPU data is extracted from 'devices' table
     const tables = [
       'devices',
       'games',
       'game_runs',
-      'gpus',
       'filters',
       'users',
       'configurations',
