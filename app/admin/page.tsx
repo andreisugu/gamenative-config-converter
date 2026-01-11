@@ -108,6 +108,32 @@ export default function AdminPage() {
     }
   };
 
+  const downloadEntireDatabase = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/download-database');
+      if (!response.ok) {
+        throw new Error(`Failed to download database: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'cached-configs.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Error downloading entire database:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const downloadSteamGames = async () => {
     setIsLoading(true);
     try {
@@ -308,7 +334,17 @@ export default function AdminPage() {
       <div className="max-w-md mx-auto">
         <h1 className="text-2xl font-bold mb-8">Admin Tools</h1>
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold mb-4">Official Data Sources</h2>
+          <h2 className="text-lg font-semibold mb-4">Full Database Export</h2>
+          <button
+            onClick={downloadEntireDatabase}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 disabled:bg-red-800 text-white rounded-lg transition-colors w-full font-medium"
+          >
+            <Download size={16} />
+            {isLoading ? 'Downloading...' : 'Download Full Database (cached-configs.json)'}
+          </button>
+          
+          <h2 className="text-lg font-semibold mb-4 mt-8">Official Data Sources</h2>
           <button
             onClick={downloadSteamGames}
             disabled={isLoading}
