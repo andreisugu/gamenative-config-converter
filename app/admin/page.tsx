@@ -77,10 +77,12 @@ export default function AdminPage() {
         const statusCode = (error as any)?.status;
         
         // Check if it's a timeout or 500 error
+        // PostgreSQL error code 57014 = statement timeout
         const isTimeout = errorMessage.toLowerCase().includes('timeout') || 
                          errorMessage.toLowerCase().includes('fetch') ||
                          errorCode === 'ETIMEDOUT' ||
-                         errorCode === 'ECONNRESET';
+                         errorCode === 'ECONNRESET' ||
+                         errorCode === '57014';
         const is500Error = statusCode === 500 || errorMessage.includes('500');
         
         // Only retry if autoRetry is enabled and it's a timeout/500 error
