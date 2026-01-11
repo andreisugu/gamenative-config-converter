@@ -14,6 +14,8 @@ export interface GameConfig {
   app_version: string | null;
   tags: any[] | null;
   session_length_sec: number | null;
+  configs_id: number | null;
+  configs_executablePath: string | null;
   game: {
     id: number;
     name: string;
@@ -177,6 +179,8 @@ function transformRow(row: any): GameConfig {
     app_version: row.configs_extraData_appVersion || null,
     tags: tags,
     session_length_sec: sessionLength,
+    configs_id: row.configs_id || null,
+    configs_executablePath: row.configs_executablePath || null,
     game: row.game_name ? {
       id: row.game_id,
       name: row.game_name

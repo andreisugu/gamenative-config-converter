@@ -18,6 +18,8 @@ interface GameConfig {
   app_version: string | null;
   tags: any[] | null;
   session_length_sec: number | null;
+  configs_id: number | null;
+  configs_executablePath: string | null;
   game: {
     id: number;
     name: string;
@@ -58,6 +60,23 @@ type SortOption = 'newest' | 'oldest' | 'rating_desc' | 'rating_asc' | 'fps_desc
 const ITEMS_PER_PAGE = 15;
 const SUGGESTION_DEBOUNCE_MS = 250;
 const SUGGESTION_LIMIT = 15;
+const UNKNOWN_GAME = 'Unknown Game';
+const UNKNOWN_GPU = 'Unknown';
+
+// --- Helper Functions ---
+
+/**
+ * Extracts the filename from a file path
+ * Handles both Windows (\) and Unix (/) path separators
+ * Returns the default value if the filename cannot be extracted or path is null/undefined
+ */
+function getFilenameFromPath(path: string | null, defaultValue: string = UNKNOWN_GAME): string {
+  if (!path) {
+    return defaultValue;
+  }
+  const filename = path.split(/[/\\]/).pop();
+  return filename?.trim() || defaultValue;
+}
 
 // --- Helper Hook: useDebounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -530,6 +549,24 @@ export default function CachedConfigBrowserClient() {
     }
   };
 
+  // Helper function to get display name for a config
+  const getDisplayName = useCallback((config: GameConfig) => {
+    const gameName = config.game?.name || UNKNOWN_GAME;
+    if (gameName === UNKNOWN_GAME) {
+      return getFilenameFromPath(config.configs_executablePath, UNKNOWN_GAME);
+    }
+    return gameName;
+  }, []);
+
+  // Helper function to get display GPU for a config
+  const getDisplayGpu = useCallback((config: GameConfig) => {
+    const gpu = config.device?.gpu || UNKNOWN_GPU;
+    if (gpu === UNKNOWN_GPU && config.configs_id) {
+      return `STEAM_${config.configs_id}`;
+    }
+    return gpu;
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-slate-200 font-sans selection:bg-cyan-500/30">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -817,7 +854,11 @@ export default function CachedConfigBrowserClient() {
 
             {/* Grid Layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayConfigs.map((config) => (
+              {displayConfigs.map((config) => {
+                const displayName = getDisplayName(config);
+                const displayGpu = getDisplayGpu(config);
+
+                return (
                 <div
                   key={config.id}
                   className="group relative bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-xl overflow-hidden hover:bg-slate-800/60 hover:border-cyan-500/30 transition-all duration-300 shadow-lg hover:shadow-cyan-900/10 flex flex-col"
@@ -825,8 +866,8 @@ export default function CachedConfigBrowserClient() {
                   {/* Card Header */}
                   <div className="p-5 pb-0">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-bold text-white truncate pr-2 group-hover:text-cyan-400 transition-colors" title={config.game?.name}>
-                        {config.game?.name || 'Unknown Game'}
+                      <h3 className="text-lg font-bold text-white truncate pr-2 group-hover:text-cyan-400 transition-colors" title={displayName}>
+                        {displayName}
                       </h3>
                       {/* Rating Badge */}
                       <div className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/20 rounded-md">
@@ -840,7 +881,7 @@ export default function CachedConfigBrowserClient() {
                       <div className="flex items-center gap-2 text-xs text-slate-400">
                         <Cpu size={14} className="text-slate-500" />
                         <span className="truncate">
-                          {config.device ? `${config.device.model} • ${config.device.gpu}` : 'Unknown Device'}
+                          {config.device ? `${config.device.model} • ${displayGpu}` : 'Unknown Device'}
                         </span>
                       </div>
                       {config.device?.android_ver && (
@@ -973,7 +1014,8 @@ export default function CachedConfigBrowserClient() {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
 
             {/* Pagination Controls */}
