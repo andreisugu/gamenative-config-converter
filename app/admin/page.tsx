@@ -85,6 +85,9 @@ export default function AdminPage() {
                          errorCode === '57014';
         const is500Error = statusCode === 500 || errorMessage.includes('500');
         
+        // Log error details for debugging
+        console.log('Error details:', { errorMessage, errorCode, statusCode, isTimeout, is500Error, autoRetry });
+        
         // Only retry if autoRetry is enabled and it's a timeout/500 error
         if (autoRetry && (isTimeout || is500Error) && retries < maxRetries) {
           retries++;
@@ -92,6 +95,7 @@ export default function AdminPage() {
           console.log(`Error occurred (${isTimeout ? 'timeout' : '500 error'}), retrying in ${waitTime}ms (attempt ${retries}/${maxRetries})...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         } else {
+          console.log(`Not retrying: autoRetry=${autoRetry}, isRetryable=${isTimeout || is500Error}, retries=${retries}, maxRetries=${maxRetries}`);
           throw error;
         }
       }
