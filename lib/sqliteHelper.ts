@@ -1,4 +1,5 @@
 import initSqlJs, { Database } from 'sql.js';
+import { APP_CONFIG } from './appConfig';
 
 let sqlPromise: Promise<any> | null = null;
 let dbInstance: Database | null = null;
@@ -35,7 +36,7 @@ export interface FilterSnapshot {
 // Initialize SQL.js once
 async function initSQL() {
   if (!sqlPromise) {
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/gamenative-config-tools';
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || APP_CONFIG.BASE_PATH;
     sqlPromise = initSqlJs({
       locateFile: (file) => `${basePath}/${file}`
     });

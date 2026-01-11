@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Search, Star, Zap, ChevronLeft, ChevronRight, Cpu, Filter, Download, X, ChevronDown, Smartphone } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { fetchAllConfigs, fetchFilterSnapshot } from '@/lib/sqliteHelper';
+import { APP_CONFIG } from '@/lib/appConfig';
 
 // --- Types ---
 
@@ -134,7 +135,7 @@ export default function CachedConfigBrowserClient() {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/gamenative-config-tools';
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || APP_CONFIG.BASE_PATH;
     
     fetchAllConfigs(basePath)
       .then(data => {
@@ -165,7 +166,7 @@ export default function CachedConfigBrowserClient() {
   useEffect(() => {
     let cancelled = false;
     setFiltersLoading(true);
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/gamenative-config-tools';
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || APP_CONFIG.BASE_PATH;
     
     fetchFilterSnapshot(basePath)
       .then(data => {

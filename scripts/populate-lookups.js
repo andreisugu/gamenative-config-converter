@@ -46,8 +46,7 @@ async function populateLookupTables() {
     console.log(`Found ${gameIdToSteamId.size} game ID to Steam ID mappings`);
 
     // Build a Steam ID to name lookup from games array
-    // Note: games.json doesn't have IDs, so we'll try to use the Steam app list
-    // Let's fetch it if possible
+    // Try to fetch Steam games list from GitHub
     console.log('Fetching Steam games list...');
     let steamGames = [];
     try {
@@ -55,9 +54,11 @@ async function populateLookupTables() {
       if (response.ok) {
         steamGames = await response.json();
         console.log(`Loaded ${steamGames.length} Steam games`);
+      } else {
+        console.warn(`Failed to fetch Steam games list (HTTP ${response.status}), using placeholder names`);
       }
     } catch (e) {
-      console.log('Could not fetch Steam games list, will use placeholder names');
+      console.warn('Could not fetch Steam games list, using placeholder names:', e.message);
     }
     
     const steamIdToName = new Map();
