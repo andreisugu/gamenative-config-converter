@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Search, Star, Zap, ChevronLeft, ChevronRight, Cpu, Filter, Download, X, ChevronDown, Smartphone } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { fetchAllConfigs, fetchFilterSnapshot } from '@/lib/sqliteHelper';
+import { APP_CONFIG } from '@/lib/appConfig';
 
 // --- Types ---
 
@@ -14,7 +16,7 @@ interface GameConfig {
   configs: any;
   created_at: string;
   app_version: string | null;
-  tags: string | null;
+  tags: any[] | null;
   session_length_sec: number | null;
   game: {
     id: number;
@@ -129,71 +131,65 @@ export default function CachedConfigBrowserClient() {
   const debouncedGpuFast = useDebounce(gpuFilter, SUGGESTION_DEBOUNCE_MS);
   const debouncedDeviceFast = useDebounce(deviceFilter, SUGGESTION_DEBOUNCE_MS);
 
-  // --- Load Cached Configs ---
+  // --- Load Cached Configs from SQLite ---
   useEffect(() => {
-    const abortController = new AbortController();
+    let cancelled = false;
     setIsLoading(true);
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-    fetch(`${basePath}/cached-configs.json`, { signal: abortController.signal })
-      .then(res => {
-        if (!res.ok) throw new Error(`Failed to load cached configs: ${res.status}`);
-        return res.json();
-      })
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || APP_CONFIG.BASE_PATH;
+    
+    fetchAllConfigs(basePath)
       .then(data => {
-        setAllConfigs(data);
-        setLoadError(null);
+        if (!cancelled) {
+          setAllConfigs(data);
+          setLoadError(null);
+        }
       })
       .catch(error => {
-        if (error.name === 'AbortError') {
-          console.log('Cached configs loading was aborted');
-          return;
+        if (!cancelled) {
+          console.error('Error loading cached configs from SQLite:', error);
+          setLoadError('Failed to load cached configurations from database');
+          setAllConfigs([]);
         }
-        console.error('Error loading cached configs:', error);
-        setLoadError('Failed to load cached configurations');
-        setAllConfigs([]);
       })
       .finally(() => {
-        if (!abortController.signal.aborted) {
+        if (!cancelled) {
           setIsLoading(false);
         }
       });
     
     return () => {
-      abortController.abort();
+      cancelled = true;
     };
   }, []);
 
-  // --- Load Static Filter Data ---
+  // --- Load Static Filter Data from SQLite ---
   useEffect(() => {
-    const abortController = new AbortController();
+    let cancelled = false;
     setFiltersLoading(true);
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-    fetch(`${basePath}/filters.json`, { signal: abortController.signal })
-      .then(res => {
-        if (!res.ok) throw new Error(`Failed to load filters: ${res.status}`);
-        return res.json();
-      })
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || APP_CONFIG.BASE_PATH;
+    
+    fetchFilterSnapshot(basePath)
       .then(data => {
-        setSnapshot(data);
-        setFiltersError(null);
+        if (!cancelled) {
+          setSnapshot(data);
+          setFiltersError(null);
+        }
       })
       .catch(error => {
-        if (error.name === 'AbortError') {
-          console.log('Filter loading was aborted');
-          return;
+        if (!cancelled) {
+          console.error('Error loading filters from SQLite:', error);
+          setFiltersError('Failed to load search filters from database');
+          setSnapshot({ games: [], gpus: [], devices: [], updatedAt: '' });
         }
-        console.error('Error loading filters:', error);
-        setFiltersError('Failed to load search filters');
-        setSnapshot({ games: [], gpus: [], devices: [], updatedAt: '' });
       })
       .finally(() => {
-        if (!abortController.signal.aborted) {
+        if (!cancelled) {
           setFiltersLoading(false);
         }
       });
     
     return () => {
-      abortController.abort();
+      cancelled = true;
     };
   }, []);
 
