@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Download, Lock } from 'lucide-react';
 
@@ -47,6 +47,10 @@ const verifyPassword = async (encryptedData: string, password: string): Promise<
   }
 };
 
+// Constants for retry logic
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 5000;
+
 export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -57,10 +61,10 @@ export default function AdminPage() {
   const [autoRetry, setAutoRetry] = useState(true);
 
   // Helper function to retry requests with exponential backoff
-  const retryRequest = async <T,>(
+  const retryRequest = useCallback(async <T,>(
     requestFn: () => Promise<T>,
-    maxRetries: number = 5,
-    baseDelay: number = 5000
+    maxRetries: number = MAX_RETRIES,
+    baseDelay: number = RETRY_DELAY_MS
   ): Promise<T> => {
     let retries = 0;
     
@@ -92,7 +96,7 @@ export default function AdminPage() {
     }
     
     throw new Error('Max retries exceeded');
-  };
+  }, [autoRetry]);
 
   const handleAuth = async () => {
     try {
@@ -112,7 +116,7 @@ export default function AdminPage() {
     setIsLoading(true);
     let allData: any[] = [];
     let from = initialOffset;
-    let remainingRetries = 5; // Reset to 5 tries
+    let remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES
     try {
       
       while (true) {
@@ -132,7 +136,7 @@ export default function AdminPage() {
         if (!data || data.length === 0) break;
         
         allData.push(...data);
-        remainingRetries = 5; // Reset to 5 after successful batch
+        remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES after successful batch
         
         if (data.length < batchSize) break;
         from += batchSize;
@@ -179,7 +183,7 @@ export default function AdminPage() {
     const effectiveBatchSize = customBatchSize ?? batchSize;
     let allData = [];
     let from = 0;
-    let remainingRetries = 5; // Reset to 5 tries
+    let remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES
 
     try {
       while (true) {
@@ -201,7 +205,7 @@ export default function AdminPage() {
         if (!data || data.length === 0) break;
 
         allData.push(...data);
-        remainingRetries = 5; // Reset to 5 after successful batch
+        remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES after successful batch
         console.log(`Downloaded ${allData.length} rows from ${tableName}...`);
 
         if (data.length < effectiveBatchSize) break;
@@ -377,7 +381,7 @@ export default function AdminPage() {
     setIsLoading(true);
     let allData: any[] = [];
     let from = initialOffset;
-    let remainingRetries = 5; // Reset to 5 tries
+    let remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES
     try {
       
       while (true) {
@@ -397,7 +401,7 @@ export default function AdminPage() {
         if (!data || data.length === 0) break;
         
         allData.push(...data);
-        remainingRetries = 5; // Reset to 5 after successful batch
+        remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES after successful batch
         
         if (data.length < batchSize) break;
         from += batchSize;
@@ -444,7 +448,7 @@ export default function AdminPage() {
     setIsLoading(true);
     let allData: any[] = [];
     let from = initialOffset;
-    let remainingRetries = 5; // Reset to 5 tries
+    let remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES
     try {
       
       while (true) {
@@ -464,7 +468,7 @@ export default function AdminPage() {
         if (!data || data.length === 0) break;
         
         allData.push(...data);
-        remainingRetries = 5; // Reset to 5 after successful batch
+        remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES after successful batch
         
         if (data.length < batchSize) break;
         from += batchSize;
@@ -511,7 +515,7 @@ export default function AdminPage() {
     setIsLoading(true);
     let allData: any[] = [];
     let from = initialOffset;
-    let remainingRetries = 5; // Reset to 5 tries
+    let remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES
     
     try {
       
@@ -531,7 +535,7 @@ export default function AdminPage() {
         if (!data || data.length === 0) break;
         
         allData.push(...data);
-        remainingRetries = 5; // Reset to 5 after successful batch
+        remainingRetries = MAX_RETRIES; // Reset to MAX_RETRIES after successful batch
         console.log(`Downloaded ${allData.length} game runs so far...`);
         
         if (data.length < batchSize) break;
@@ -662,7 +666,7 @@ export default function AdminPage() {
             </span>
           </label>
           <p className="text-xs text-slate-400 mt-2 ml-8">
-            When enabled, automatically retries failed requests up to 5 times with 5-second intervals. Retry counter resets to 5 after each successful batch.
+            When enabled, automatically retries failed requests up to {MAX_RETRIES} times with {RETRY_DELAY_MS / 1000}-second intervals. Retry counter resets to {MAX_RETRIES} after each successful batch.
           </p>
         </div>
         
