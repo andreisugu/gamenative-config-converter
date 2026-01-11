@@ -127,6 +127,7 @@ export default function AdminPage() {
         if (!data || data.length === 0) break;
 
         allData.push(...data);
+        console.log(`Downloaded ${allData.length} rows from ${tableName}...`);
 
         if (data.length < batchSize) break;
         from += batchSize;
@@ -143,11 +144,11 @@ export default function AdminPage() {
     setIsLoading(true);
     try {
       // List of tables to download
+      // Note: 'gpus' table doesn't exist - GPU data is extracted from 'devices' table
       const tables = [
         'devices',
         'games',
         'game_runs',
-        'gpus',
         'filters',
         'users',
         'configurations',

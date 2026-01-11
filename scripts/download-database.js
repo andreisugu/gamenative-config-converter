@@ -56,11 +56,11 @@ async function downloadEntireDatabase() {
 
     // Get list of all tables by attempting to fetch from known tables
     // For a complete database export, we need to know which tables exist
+    // Note: 'gpus' table doesn't exist - GPU data is extracted from 'devices' table
     const tables = [
       'devices',
       'games',
       'game_runs',
-      'gpus',
       'filters',
       'users',
       'configurations',
