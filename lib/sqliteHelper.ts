@@ -3,6 +3,8 @@ import { APP_CONFIG } from './appConfig';
 
 let sqlPromise: Promise<any> | null = null;
 let dbInstance: Database | null = null;
+let gamesCache: Array<{ name: string }> | null = null;
+let devicesCache: Array<{ name: string; model: string }> | null = null;
 
 export interface GameConfig {
   id: number;
@@ -66,6 +68,40 @@ async function loadDatabase(basePath: string = ''): Promise<Database> {
   }
   
   return dbInstance;
+}
+
+// Load and cache games from JSON
+async function loadGames(basePath: string = ''): Promise<Array<{ name: string }>> {
+  if (gamesCache) {
+    return gamesCache;
+  }
+
+  const gamesPath = basePath ? `${basePath}/games.json` : '/games.json';
+  const response = await fetch(gamesPath);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to load games.json: ${response.status}`);
+  }
+  
+  gamesCache = await response.json();
+  return gamesCache!;
+}
+
+// Load and cache devices from JSON
+async function loadDevices(basePath: string = ''): Promise<Array<{ name: string; model: string }>> {
+  if (devicesCache) {
+    return devicesCache;
+  }
+
+  const devicesPath = basePath ? `${basePath}/devices.json` : '/devices.json';
+  const response = await fetch(devicesPath);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to load devices.json: ${response.status}`);
+  }
+  
+  devicesCache = await response.json();
+  return devicesCache!;
 }
 
 // Build a configs object from the flattened row data
@@ -149,7 +185,11 @@ function buildConfigsObject(row: any): any {
 }
 
 // Transform SQLite row to GameConfig format
-function transformRow(row: any): GameConfig {
+function transformRow(
+  row: any, 
+  games: Array<{ name: string }>, 
+  devices: Array<{ name: string; model: string }>
+): GameConfig {
   const configs = buildConfigsObject(row);
   
   // Parse tags if present
@@ -167,6 +207,32 @@ function transformRow(row: any): GameConfig {
   const avgFps = row.avg_fps !== null && row.avg_fps !== '' ? parseFloat(row.avg_fps) : 0;
   const sessionLength = row.session_length_sec !== null && row.session_length_sec !== '' ? parseFloat(row.session_length_sec) : null;
   
+  // Map game_id to game name using array index
+  let game = null;
+  if (row.game_id !== null && row.game_id !== undefined) {
+    const gameEntry = games[row.game_id];
+    if (gameEntry) {
+      game = {
+        id: row.game_id,
+        name: gameEntry.name
+      };
+    }
+  }
+  
+  // Map device_id to device info using array index
+  let device = null;
+  if (row.device_id !== null && row.device_id !== undefined) {
+    const deviceEntry = devices[row.device_id];
+    if (deviceEntry) {
+      device = {
+        id: row.device_id,
+        model: deviceEntry.model,
+        gpu: row.device_gpu || '',
+        android_ver: row.device_android_ver || ''
+      };
+    }
+  }
+  
   return {
     id: row.id,
     rating: row.rating || 0,
@@ -177,33 +243,24 @@ function transformRow(row: any): GameConfig {
     app_version: row.configs_extraData_appVersion || null,
     tags: tags,
     session_length_sec: sessionLength,
-    game: row.game_name ? {
-      id: row.game_id,
-      name: row.game_name
-    } : null,
-    device: row.device_model ? {
-      id: row.device_id,
-      model: row.device_model,
-      gpu: row.device_gpu || '',
-      android_ver: row.device_android_ver || ''
-    } : null
+    game,
+    device
   };
 }
 
 // Fetch all configs from SQLite database
 export async function fetchAllConfigs(basePath: string = ''): Promise<GameConfig[]> {
   const db = await loadDatabase(basePath);
+  const games = await loadGames(basePath);
+  const devicesJson = await loadDevices(basePath);
   
-  // Query all data with joins to games and devices tables
+  // Query all data with join to devices table to get gpu and android_ver
   const query = `
     SELECT 
       d.*,
-      g.name as game_name,
-      dev.model as device_model,
       dev.gpu as device_gpu,
       dev.android_ver as device_android_ver
     FROM data d
-    LEFT JOIN games g ON d.game_id = g.id
     LEFT JOIN devices dev ON d.device_id = dev.id
   `;
   
@@ -224,38 +281,31 @@ export async function fetchAllConfigs(basePath: string = ''): Promise<GameConfig
       row[col] = valueRow[i];
     });
     
-    configs.push(transformRow(row));
+    configs.push(transformRow(row, games, devicesJson));
   }
   
   return configs;
 }
 
-// Fetch filter snapshot data from SQLite database
+// Fetch filter snapshot data from SQLite database and JSON files
 export async function fetchFilterSnapshot(basePath: string = ''): Promise<FilterSnapshot> {
   const db = await loadDatabase(basePath);
+  const games = await loadGames(basePath);
+  const devicesJson = await loadDevices(basePath);
   
-  // Get all games
-  const gamesResult = db.exec('SELECT id, name FROM games ORDER BY name');
-  const games = gamesResult.length > 0 
-    ? gamesResult[0].values.map(row => ({ id: row[0] as number, name: row[1] as string }))
-    : [];
+  // Convert games array to format with id
+  const gamesWithId = games.map((game, index) => ({ id: index, name: game.name }));
   
-  // Get unique GPUs from devices
+  // Get unique GPUs from devices table
   const gpusResult = db.exec('SELECT DISTINCT gpu FROM devices WHERE gpu IS NOT NULL AND gpu != "" AND gpu != "Unknown" ORDER BY gpu');
   const gpus = gpusResult.length > 0 
     ? gpusResult[0].values.map(row => row[0] as string)
     : [];
   
-  // Get unique devices
-  const devicesResult = db.exec('SELECT DISTINCT name, model FROM devices WHERE model IS NOT NULL ORDER BY name');
-  const devices = devicesResult.length > 0 
-    ? devicesResult[0].values.map(row => ({ name: row[0] as string || row[1] as string, model: row[1] as string }))
-    : [];
-  
   return {
-    games,
+    games: gamesWithId,
     gpus,
-    devices,
+    devices: devicesJson,
     updatedAt: new Date().toISOString()
   };
 }
