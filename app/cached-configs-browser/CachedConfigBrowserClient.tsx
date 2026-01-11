@@ -68,6 +68,7 @@ const UNKNOWN_GPU = 'Unknown';
 /**
  * Extracts the filename from a file path
  * Handles both Windows (\) and Unix (/) path separators
+ * Removes .exe extension if present
  * Returns the default value if the filename cannot be extracted or path is null/undefined
  */
 function getFilenameFromPath(path: string | null, defaultValue: string = UNKNOWN_GAME): string {
@@ -75,7 +76,11 @@ function getFilenameFromPath(path: string | null, defaultValue: string = UNKNOWN
     return defaultValue;
   }
   const filename = path.split(/[/\\]/).pop();
-  return filename?.trim() || defaultValue;
+  if (!filename || !filename.trim()) {
+    return defaultValue;
+  }
+  // Remove .exe extension if present (case-insensitive)
+  return filename.trim().replace(/\.exe$/i, '');
 }
 
 // --- Helper Hook: useDebounce ---
@@ -561,8 +566,13 @@ export default function CachedConfigBrowserClient() {
   // Helper function to get display GPU for a config
   const getDisplayGpu = useCallback((config: GameConfig) => {
     const gpu = config.device?.gpu || UNKNOWN_GPU;
-    if (gpu === UNKNOWN_GPU && config.configs_id) {
-      return `STEAM_${config.configs_id}`;
+    if (gpu === UNKNOWN_GPU && config.configs_id !== null) {
+      // Convert to string to check for STEAM_ prefix (configs_id may contain string values from data)
+      const configIdStr = String(config.configs_id);
+      if (configIdStr.startsWith('STEAM_')) {
+        return configIdStr;
+      }
+      return `STEAM_${configIdStr}`;
     }
     return gpu;
   }, []);
