@@ -469,7 +469,7 @@ export default function AdminPage() {
             max="10000"
             step="10"
             value={batchSize}
-            onChange={(e) => setBatchSize(Math.max(10, parseInt(e.target.value) || 1000))}
+            onChange={(e) => setBatchSize(Math.min(10000, Math.max(10, parseInt(e.target.value) || 1000)))}
             className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
             placeholder="1000"
           />
