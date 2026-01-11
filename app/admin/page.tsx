@@ -52,6 +52,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [batchSize, setBatchSize] = useState(1000);
 
   const handleAuth = async () => {
     try {
@@ -72,7 +73,6 @@ export default function AdminPage() {
     try {
       let allData = [];
       let from = 0;
-      const batchSize = 1000;
       
       while (true) {
         const { data, error } = await supabase
@@ -108,7 +108,8 @@ export default function AdminPage() {
     }
   };
 
-  const downloadTable = async (tableName: string, batchSize = 1000) => {
+  const downloadTable = async (tableName: string, customBatchSize?: number) => {
+    const effectiveBatchSize = customBatchSize ?? batchSize;
     let allData = [];
     let from = 0;
 
@@ -117,7 +118,7 @@ export default function AdminPage() {
         const { data, error } = await supabase
           .from(tableName)
           .select('*')
-          .range(from, from + batchSize - 1);
+          .range(from, from + effectiveBatchSize - 1);
 
         if (error) {
           console.error(`Error fetching from ${tableName}:`, error);
@@ -129,8 +130,8 @@ export default function AdminPage() {
         allData.push(...data);
         console.log(`Downloaded ${allData.length} rows from ${tableName}...`);
 
-        if (data.length < batchSize) break;
-        from += batchSize;
+        if (data.length < effectiveBatchSize) break;
+        from += effectiveBatchSize;
       }
 
       return allData;
@@ -276,7 +277,6 @@ export default function AdminPage() {
     try {
       let allData = [];
       let from = 0;
-      const batchSize = 1000;
       
       while (true) {
         const { data, error } = await supabase
@@ -317,7 +317,6 @@ export default function AdminPage() {
     try {
       let allData = [];
       let from = 0;
-      const batchSize = 1000;
       
       while (true) {
         const { data, error } = await supabase
@@ -358,7 +357,6 @@ export default function AdminPage() {
     try {
       let allData: any[] = [];
       let from = 0;
-      const batchSize = 1000;
       const maxRetries = 3;
       
       while (true) {
@@ -459,6 +457,27 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-slate-200 p-8">
       <div className="max-w-md mx-auto">
         <h1 className="text-2xl font-bold mb-8">Admin Tools</h1>
+        
+        <div className="mb-6 p-4 bg-slate-800 rounded-lg border border-slate-700">
+          <label htmlFor="batchSize" className="block text-sm font-medium mb-2 text-slate-300">
+            Batch Size (rows per request)
+          </label>
+          <input
+            id="batchSize"
+            type="number"
+            min="10"
+            max="10000"
+            step="10"
+            value={batchSize}
+            onChange={(e) => setBatchSize(Math.min(10000, Math.max(10, parseInt(e.target.value) || 1000)))}
+            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+            placeholder="1000"
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            Lower values (e.g., 100-500) help prevent timeouts. Default is 1000.
+          </p>
+        </div>
+        
         <div className="space-y-4">
           <h2 className="text-lg font-semibold mb-4">Full Database Export</h2>
           <button
