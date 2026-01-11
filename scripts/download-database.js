@@ -19,15 +19,12 @@ async function downloadTable(tableName, batchSize = 1000) {
   let from = 0;
   let totalFetched = 0;
 
-  // Use smaller batch size for large tables to avoid timeout
-  const actualBatchSize = tableName === 'game_runs' ? 100 : batchSize;
-
   try {
     while (true) {
       const { data, error, count } = await supabase
         .from(tableName)
         .select('*', { count: 'exact' })
-        .range(from, from + actualBatchSize - 1);
+        .range(from, from + batchSize - 1);
 
       if (error) {
         console.error(`Error fetching from ${tableName}:`, error);
@@ -41,8 +38,8 @@ async function downloadTable(tableName, batchSize = 1000) {
       
       console.log(`  Fetched ${totalFetched} rows from ${tableName}...`);
 
-      if (data.length < actualBatchSize) break;
-      from += actualBatchSize;
+      if (data.length < batchSize) break;
+      from += batchSize;
     }
 
     console.log(`✓ Downloaded ${allData.length} rows from ${tableName}`);

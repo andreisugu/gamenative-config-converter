@@ -112,15 +112,12 @@ export default function AdminPage() {
     let allData = [];
     let from = 0;
 
-    // Use smaller batch size for large tables to avoid timeout
-    const actualBatchSize = tableName === 'game_runs' ? 100 : batchSize;
-
     try {
       while (true) {
         const { data, error } = await supabase
           .from(tableName)
           .select('*')
-          .range(from, from + actualBatchSize - 1);
+          .range(from, from + batchSize - 1);
 
         if (error) {
           console.error(`Error fetching from ${tableName}:`, error);
@@ -132,8 +129,8 @@ export default function AdminPage() {
         allData.push(...data);
         console.log(`Downloaded ${allData.length} rows from ${tableName}...`);
 
-        if (data.length < actualBatchSize) break;
-        from += actualBatchSize;
+        if (data.length < batchSize) break;
+        from += batchSize;
       }
 
       return allData;
