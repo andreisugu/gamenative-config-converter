@@ -180,12 +180,15 @@ Built to support the **Import/Export JSON Schema** from GameNative Android sourc
 
 ### Config Browser
 
-**Performance-Optimized:**
+**Performance-Optimized Architecture:**
+
+The browser balances performance with database efficiency through:
 - **Local snapshots:** Pre-generated JSON for instant autocomplete
 - **Client-side filtering:** Fuzzy matching without database queries
 - **Debounced input:** 250ms delay prevents excessive API calls
 - **Efficient queries:** Separate count/data queries with proper joins
 - **Request cancellation:** AbortController cancels outdated requests
+- **Seamless integration:** Direct Config Editor loading and JSON export with proper metadata structure
 
 </details>
 
